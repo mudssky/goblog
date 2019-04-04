@@ -1,0 +1,55 @@
+{{template "header"}}
+{{template "navbar"}}
+<div class="container mt-5">
+  <form action="/post/new" method="POST">
+      <div class="form-group row">
+          <label for="inputAuthor" class="col-sm-2 col-form-label">Author</label>
+          <div class="col-sm-10">
+            <input type="text" readonly class="form-control-plaintext" name="Author" id="inputAuthor" value="mudssky">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label for="inputTitle" class="col-sm-2 col-form-label">Title</label>
+          <div class="col-sm-10">
+            <input type="text" class="form-control" id="inputTitle" name="Title" placeholder="Title">
+          </div>
+        </div>
+        <div class="form-group row">
+            <label for="inputCategory" class="col-sm-2 col-form-label">Category</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="inputCategory" name="Category" placeholder="Category">
+            </div>
+          </div>
+      <textarea name="content" id="textarea"  rows="10" class="form-control"></textarea>
+      <button  type="submit" class="btn btn-primary form-control" id="" >Submit</button>
+  </form>
+  <button class="btn btn-primary form-control" id="openEdit">Edit with StackEdit</button>
+</div>
+<script src="/static/js/benweet-stackedit.js-5f37fa9/docs/lib/stackedit.min.js"></script>
+<script>
+ const el = document.querySelector('#textarea');
+ const btn=document.querySelector("#openEdit")
+  const stackedit = new Stackedit();
+
+  // Open the iframe
+  // stackedit.openFile({
+  //   name: 'Filename', // with an optional filename
+  //   content: {
+  //     text: el.value // and the Markdown content.
+  //   }
+  // });
+
+  // Listen to StackEdit events and apply the changes to the textarea.
+  stackedit.on('fileChange', (file) => {
+    el.value = file.content.text;
+  });
+  btn.addEventListener("click",function(){
+    stackedit.openFile({
+    name: 'textOnEdit', // with an optional filename
+    content: {
+      text: el.value // and the Markdown content.
+    }
+  });
+  })
+</script>
+{{template "footer"}}
