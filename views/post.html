@@ -1,23 +1,31 @@
 {{template "header"}}
 {{template "navbar"}}
+<div class="container mt-5">
+  {{if .signin}}
+  <a href="/postid/edit?id={{.post.IDhex}}" class="btn btn-primary form-control">Edit</a>
+  <a href="/postid/delete?id={{.post.IDhex}}" class="btn btn-danger form-control">Delete</a>
+  {{end}}
+    <h1>{{.post.Title}}</h1>
+</div>
+<div class="container mt-5" id="article">
 
-<textarea name="" id="" cols="30" rows="10"></textarea>
+</div>
 <script src="/static/js/benweet-stackedit.js-5f37fa9/docs/lib/stackedit.js"></script>
 <script>
- const el = document.querySelector('textarea');
+ const el = document.querySelector('#article');
   const stackedit = new Stackedit();
 
   // Open the iframe
   stackedit.openFile({
     name: 'Filename', // with an optional filename
     content: {
-      text: el.value // and the Markdown content.
+      text: `{{.post.Content}}`// and the Markdown content.
     }
-  });
-
+    // slient 模式，编辑器不会弹出，只是渲染页面使用
+  },true);
   // Listen to StackEdit events and apply the changes to the textarea.
   stackedit.on('fileChange', (file) => {
-    el.value = file.content.text;
+    el.innerHTML = file.content.html;
   });
 </script>
 {{template "footer"}}

@@ -1,27 +1,27 @@
 {{template "header"}}
 {{template "navbar" .}}
 <div class="container mt-5">
-  <form action="/post/new" method="POST">
+  <form action="/postid/edit?id={{.post.IDhex}}" method="POST">
       <div class="form-group row">
           <label for="inputAuthor" class="col-sm-2 col-form-label">Author</label>
           <div class="col-sm-10">
-            <input type="text" readonly class="form-control-plaintext" name="Author" id="inputAuthor" value="{{.username}}">
+            <input type="text" readonly class="form-control-plaintext" name="Author" id="inputAuthor" value="{{.post.Author}}">
           </div>
         </div>
         <div class="form-group row">
           <label for="inputTitle" class="col-sm-2 col-form-label">Title</label>
           <div class="col-sm-10">
-            <input type="text" class="form-control" id="inputTitle" name="Title" placeholder="Title">
+            <input type="text" class="form-control" id="inputTitle" name="Title" placeholder="Title" value="{{.post.Title}}">
           </div>
         </div>
         <div class="form-group row">
             <label for="inputCategory" class="col-sm-2 col-form-label">Category</label>
             <div class="col-sm-10">
-              <input type="text" class="form-control" id="inputCategory" name="Category" placeholder="Category">
+              <input type="text" class="form-control" id="inputCategory" name="Category" placeholder="Category" value="{{.post.Category}}">
             </div>
           </div>
-      <textarea name="Content" id="textarea"  rows="30" class="form-control"></textarea>
-      <button  type="submit" class="btn btn-primary form-control" id="" >Submit</button>
+      <textarea name="Content" id="textarea"  rows="30" class="form-control" value="">{{.post.Content}}</textarea>
+      <button  type="submit" class="btn btn-primary form-control" id="" >Update</button>
   </form>
   <button class="btn btn-primary form-control" id="openEdit">Edit with StackEdit</button>
 </div>
@@ -31,13 +31,13 @@
  const btn=document.querySelector("#openEdit")
   const stackedit = new Stackedit();
 
-  // Open the iframe
-  // stackedit.openFile({
-  //   name: 'Filename', // with an optional filename
-  //   content: {
-  //     text: el.value // and the Markdown content.
-  //   }
-  // });
+//   Open the iframe
+//   stackedit.openFile({
+//     name: 'Filename', // with an optional filename
+//     content: {
+//       text: `{{.post.Content}}` // and the Markdown content.
+//     }
+//   },true);
 
   // Listen to StackEdit events and apply the changes to the textarea.
   stackedit.on('fileChange', (file) => {

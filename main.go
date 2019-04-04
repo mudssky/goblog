@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
 
+	"./models/post"
 	"./models/session"
 	"./models/user"
 	"github.com/globalsign/mgo/bson"
@@ -56,6 +58,9 @@ func init() {
 // IndexHandle 处理首页的逻辑
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
+		posts := post.Post{}
+		postindex, err := posts.GetPostsIndex()
+		LogDebug.Println(postindex)
 		LogDebug.Println("path", "/")
 		// 解析需要的模板
 		temp, err := template.ParseFiles("views/index.html", "views/components/navbar.html", "views/components/footer.html",
@@ -69,9 +74,10 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 		sess = sess.SessionStart(w, r)
 		// SessionMap = sess.Data
 		// LogDebug.Println(sess.Data["signin"])
+		sess.Data["postindex"] = postindex
 		err = temp.ExecuteTemplate(w, "index", sess.Data)
 		if err != nil {
-			LogPanic.Panicln("parse template views/index.html failed")
+			LogPanic.Panicln("parse template views/index.html failed", err)
 		}
 		// http包默认的路由规则，按照最长前缀匹配
 		// 所有路径都可以匹配到/,那样404页面就失去作用了，所以当/匹配失败的时候展示404页面
@@ -83,7 +89,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		err = temp.ExecuteTemplate(w, "404.html", nil)
 		if err != nil {
-			LogPanic.Panicln("parse template views/404.html failed")
+			LogPanic.Panicln("parse template views/404.html failed", err)
 		}
 	}
 
@@ -113,7 +119,7 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		err = temp.ExecuteTemplate(w, "signin.html", nil)
 		if err != nil {
-			LogPanic.Panicln("parse template views/signin.html failed")
+			LogPanic.Panicln("parse template views/signin.html failed", err)
 		}
 		return
 	}
@@ -130,7 +136,7 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 			}
 			err = temp.ExecuteTemplate(w, "signin.html", errorMessage)
 			if err != nil {
-				LogPanic.Panicln("parse template views/signin.html failed")
+				LogPanic.Panicln("parse template views/signin.html failed", err)
 			}
 			// 如果登陆成功，跳转到首页，并把登陆状态加入到session
 		} else {
@@ -138,18 +144,21 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 			// sess.Set("dsa", "dsa")
 			// sess.Save()
 			// fmt.Println(sess)
+			username := r.Form["Username"][0]
 			sess = sess.SessionStart(w, r)
 			// 登陆成功，自动跳转到首页,设置session记录登录状态
 			sess.Set("signin", true)
+			sess.Set("username", username)
 			sess.Save()
-			message := MessagePage{Message: "登录成功", URL: "/"}
+			succeedMessage := fmt.Sprintf("登录成功,%s", username)
+			message := MessagePage{Message: succeedMessage, URL: "/"}
 			temp, err := template.ParseFiles("views/messagepage.html", "views/components/footer.html")
 			if err != nil {
 				LogPanic.Panicln("parse all templates failed", err)
 			}
 			err = temp.ExecuteTemplate(w, "messagepage.html", message)
 			if err != nil {
-				LogPanic.Panicln("parse template views/messagepage.html failed")
+				LogPanic.Panicln("parse template views/messagepage.html failed", err)
 			}
 			// http.Redirect(w,r,"/",http.StatusFound)
 		}
@@ -184,7 +193,7 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		err = temp.ExecuteTemplate(w, "signup.html", nil)
 		if err != nil {
-			LogPanic.Panicln("parse template views/signin.html failed")
+			LogPanic.Panicln("parse template views/signin.html failed", err)
 		}
 		return
 	}
@@ -206,7 +215,7 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 			}
 			err = temp.ExecuteTemplate(w, "signup.html", errorMessage)
 			if err != nil {
-				LogPanic.Panicln("parse template views/signup.html failed")
+				LogPanic.Panicln("parse template views/signup.html failed", err)
 			}
 		} else {
 			message := MessagePage{Message: "注册成功", URL: "/signin"}
@@ -221,7 +230,7 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 			}
 			err = temp.ExecuteTemplate(w, "messagepage.html", message)
 			if err != nil {
-				LogPanic.Panicln("parse template views/messagepage.html failed")
+				LogPanic.Panicln("parse template views/messagepage.html failed", err)
 			}
 			// http.Redirect(w, r, "/signin", http.StatusFound)
 		}
@@ -242,37 +251,194 @@ func SignoutHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 // PostHandle 文章页路由
-func PostHandle(w http.ResponseWriter, r *http.Request) {
-	temp, err := template.ParseFiles("views/post.html", "views/components/navbar.html", "views/components/footer.html",
-		"views/components/header.html")
-	if err != nil {
-		LogPanic.Panicln("parse template views/index.html failed", err)
-	}
-	err = temp.ExecuteTemplate(w, "post.html", nil)
-	if err != nil {
-		LogPanic.Panicln("parse template views/index.html failed")
-	}
-}
+// func PostHandle(w http.ResponseWriter, r *http.Request) {
+// 	temp, err := template.ParseFiles("views/post.html", "views/components/navbar.html", "views/components/footer.html",
+// 		"views/components/header.html")
+// 	if err != nil {
+// 		LogPanic.Panicln("parse template views/index.html failed", err)
+// 	}
+// 	err = temp.ExecuteTemplate(w, "post.html", nil)
+// 	if err != nil {
+// 		LogPanic.Panicln("parse template views/index.html failed", err)
+// 	}
+// }
 
 // NewPostHandle 新建一篇文章
 func NewPostHandle(w http.ResponseWriter, r *http.Request) {
+	// 首先开启session,检查登录状态
+	sess := session.New()
+	sess = sess.SessionStart(w, r)
+	if checkSignin(sess.Data) != true {
+		return
+	}
 	if r.Method == "GET" {
 		temp, err := template.ParseFiles("views/newpost.html", "views/components/navbar.html", "views/components/footer.html",
 			"views/components/header.html")
 		if err != nil {
 			LogPanic.Panicln("parse template views/newpost.html failed", err)
 		}
-		err = temp.ExecuteTemplate(w, "newpost.html", nil)
+		err = temp.ExecuteTemplate(w, "newpost.html", sess.Data)
 		if err != nil {
-			LogPanic.Panicln("parse template views/newposy.html failed")
+			LogPanic.Panicln("parse template views/newpost.html failed", err)
 		}
 		return
 	}
 	if r.Method == "POST" {
 		r.ParseForm()
+		Author := r.Form["Author"][0]
+		Title := r.Form["Title"][0]
+		Content := r.Form["Content"][0]
+		Category := r.Form["Category"][0]
+		newpost := post.New(Author, Title, Content, Category)
+		err := newpost.Add()
+		var message MessagePage
+		if err != nil {
+			message = MessagePage{Message: "保存文章失败，请重试", URL: "/post/new"}
+
+		}
+		message = MessagePage{Message: "保存文章成功", URL: "/post/new"}
+		temp, err := template.ParseFiles("views/messagepage.html", "views/components/footer.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "messagepage.html", message)
+		if err != nil {
+			LogPanic.Panicln("parse template views/messagepage.html failed", err)
+		}
 
 	}
+}
 
+// PostIDHandle 根据monggodb的ID字符串来查找文章，返回对应hexid的文章页
+func PostIDHandle(w http.ResponseWriter, r *http.Request) {
+	urlValue := r.URL.Query()
+	idhex := urlValue["id"][0]
+	if idhex == "" {
+		return
+	}
+	sess := session.New()
+	sess = sess.SessionStart(w, r)
+	// 判断是否登录，若没有登录则没有权限，登录后sigin标志会变成true
+	// if checkSignin(sess.Data) != true {
+	// 	return
+	// }
+	curpost := &post.Post{}
+	err := curpost.FindPostByIDhex(idhex)
+	// 如果获取文章出错，跳转到404页面
+	if err != nil {
+		LogPanic.Panicln("获取文章失败", err)
+		http.Redirect(w, r, "/404", http.StatusNotFound)
+		return
+	}
+	sess.Data["post"] = curpost
+	temp, err := template.ParseFiles("views/post.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+	if err != nil {
+		LogPanic.Panicln("parse all templates failed", err)
+	}
+	err = temp.ExecuteTemplate(w, "post.html", sess.Data)
+	if err != nil {
+		LogPanic.Panicln("parse template views/post.html failed", err)
+	}
+}
+func checkSignin(sessionData map[string]interface{}) bool {
+	if sessionData["signin"] == true {
+		return true
+	}
+	return false
+}
+
+// PostIDEditHandle 浏览文章的时候可以对指定文章进行编辑操作
+func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
+	//1.检查url参数和登录状况
+	urlValue := r.URL.Query()
+	idhex := urlValue["id"][0]
+	if idhex == "" {
+		return
+	}
+	sess := session.New()
+	sess = sess.SessionStart(w, r)
+	// 判断是否登录，若没有登录则没有权限，登录后sigin标志会变成true
+	if checkSignin(sess.Data) != true {
+		return
+	}
+	if r.Method == "GET" {
+		curpost := &post.Post{}
+		// 查询对应的文章信息
+		err := curpost.FindPostByIDhex(idhex)
+		// 如果出错说明没有找到，重定向到404
+		if err != nil {
+			http.Redirect(w, r, "/404", http.StatusNotFound)
+			return
+		}
+		// 找到后渲染到文章编辑页，编辑页基本上和新建页是一样的
+		sess.Data["post"] = curpost
+		temp, err := template.ParseFiles("views/edit.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "edit.html", sess.Data)
+		if err != nil {
+			LogPanic.Panicln("parse template views/edit.html failed", err)
+		}
+		return
+	}
+	if r.Method == "POST" {
+		r.ParseForm()
+		Author := r.Form["Author"][0]
+		Title := r.Form["Title"][0]
+		Content := r.Form["Content"][0]
+		Category := r.Form["Category"][0]
+		newpost := post.New(Author, Title, Content, Category)
+		newpost.IDhex = idhex
+		err := newpost.Update()
+		// 如果更新过程出错，说明给的文章id出错，同样重定向到404
+		if err != nil {
+			LogPanic.Println("更新文章失败", err)
+			http.Redirect(w, r, "/404", http.StatusNotFound)
+			return
+		}
+		message := MessagePage{Message: "更新文章成功", URL: "/postid?id=" + idhex}
+		showJumpMessage(message, w)
+	}
+}
+func showJumpMessage(message MessagePage, w http.ResponseWriter) {
+	temp, err := template.ParseFiles("views/messagepage.html", "views/components/footer.html")
+	if err != nil {
+		LogPanic.Panicln("parse all templates failed", err)
+	}
+	err = temp.ExecuteTemplate(w, "messagepage.html", message)
+	if err != nil {
+		LogPanic.Panicln("parse template views/messagepage.html failed", err)
+	}
+}
+
+// PostIDDeleteHandle 根据指定id删除对应文章的处理器
+func PostIDDeleteHandle(w http.ResponseWriter, r *http.Request) {
+	//1.检查url参数和登录状况
+	urlValue := r.URL.Query()
+	idhex := urlValue["id"][0]
+	if idhex == "" {
+		return
+	}
+	sess := session.New()
+	sess = sess.SessionStart(w, r)
+	// 判断是否登录，若没有登录则没有权限，登录后sigin标志会变成true
+	if checkSignin(sess.Data) != true {
+		return
+	}
+	if r.Method == "GET" {
+		curpost := &post.Post{}
+		// 查询对应的文章信息
+		err := curpost.DeleteByIDhex(idhex)
+		// 如果出错，说明删除失败，
+		if err != nil {
+			LogPanic.Println("删除文章失败", err)
+			http.Redirect(w, r, "/404", http.StatusNotFound)
+			return
+		}
+		message := MessagePage{"删除文章成功", "/"}
+		showJumpMessage(message, w)
+	}
 }
 func main() {
 	// 开启静态文件服务，http.StripPrefix提供去掉前缀的静态路由，否则会把路由全部当做路径匹配
@@ -286,8 +452,12 @@ func main() {
 	http.HandleFunc("/signup", SignupHandle)
 	http.HandleFunc("/signout", SignoutHandle)
 	// 文章页路由
-	http.HandleFunc("/post", PostHandle)
-	http.HandleFunc("/post/new", NewPostHandle)
+	// http.HandleFunc("/post", PostHandle)
+	http.HandleFunc("/post/new", NewPostHandle)           //增加文章
+	http.HandleFunc("/postid", PostIDHandle)              //获取显示指定文章
+	http.HandleFunc("/postid/edit", PostIDEditHandle)     //编辑指定文章
+	http.HandleFunc("/postid/delete", PostIDDeleteHandle) //删除指定文章
+
 	err := http.ListenAndServe(":3333", nil)
 	if err != nil {
 		LogFatal.Fatal("ListenAndServe error")

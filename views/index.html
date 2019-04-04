@@ -3,16 +3,21 @@
    {{template "navbar" .}}
 
    <div class="container mt-5">
+     {{range .postindex}}
     <div class="card mt-5">
       <!-- <img class="card-img-top" src="#" alt="Card image cap"> -->
-      <div class="card-body">
-        <h5 class="card-title">Card title</h5>
-        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-      </div>
+      <a href="/postid?id={{.idhex}}" class="btn">
+          <div class="card-body">
+              <h5 class="card-title">{{.title}}</h5>
+              <p class="card-text">{{.author}}</p>
+              <p class="card-text">{{.category}}</p>
+            </div>
+      </a>
       <div class="card-footer">
-        <small class="text-muted">Last updated 3 mins ago</small>
+        <small class="text-muted">{{.lastmodified}}</small>
       </div>
     </div>
+    {{end}}
     <div class="card mt-5">
       <div class="card-body">
         <h5 class="card-title">Card title</h5>
