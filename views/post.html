@@ -1,5 +1,5 @@
 {{template "header"}}
-{{template "navbar"}}
+{{template "navbar" .}}
 <div class="container mt-5">
   {{if .signin}}
   <a href="/postid/edit?id={{.post.IDhex}}" class="btn btn-primary form-control">Edit</a>
@@ -7,25 +7,69 @@
   {{end}}
     <h1>{{.post.Title}}</h1>
 </div>
+<ul id="toc" class="container" style="list-style:none"></ul>
 <div class="container mt-5" id="article">
 
 </div>
-<script src="/static/js/benweet-stackedit.js-5f37fa9/docs/lib/stackedit.js"></script>
+<div class="invisible">{{.post.Content}}</div>
+<!-- <script src="/static/js/benweet-stackedit.js-5f37fa9/docs/lib/stackedit.js"></script> -->
+<!-- <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/default.min.css"> -->
+<link rel="stylesheet" href="/static/vender/highlight.js-master/src/styles/vs2015.css">
+<!-- <link rel="stylesheet" href="/static/vender/highlight.js-master/src/styles/monokai-sublime.css"> -->
+<!-- <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js"></script> -->
+<!-- <script src="/static/vender/highlight.js-master/src/highlight.min.js"></script> -->
+<script src="/static/vender/highlight.js-master/build/browser/highlight.pack.js"></script>
+<script src="/static/vender/marked/marked.min.js"></script>
+<script src="/static/vender/clipboard.js-master/dist/clipboard.min.js"></script>
 <script>
  const el = document.querySelector('#article');
-  const stackedit = new Stackedit();
+ const articleDom=document.querySelector('.invisible')
+ hljs.initHighlightingOnLoad();
+ marked.setOptions({
+  renderer: new marked.Renderer(),
+  highlight: function(code) {
+    return hljs.highlightAuto(code).value;
+  },
+  pedantic: false,
+  gfm: true,
+  tables: true,
+  breaks: false,
+  sanitize: false,
+  smartLists: true,
+  smartypants: false,
+  xhtml: false
+});
+ el.innerHTML=marked(articleDom.innerHTML)
+  // const stackedit = new Stackedit();
+  // // Open the iframe
+  // stackedit.openFile({
+  //   name: 'Filename', // with an optional filename
+  //   content: {
+  //     text: articleDom.innerHTML// and the Markdown content.
+  //   }
+  //   // slient 模式，编辑器不会弹出，只是渲染页面使用
+  // },true);
+  // // Listen to StackEdit events and apply the changes to the textarea.
+  // stackedit.on('fileChange', (file) => {
+  //   el.innerHTML = file.content.html;
+  // });
+window.onload=function(){
+  $('code').each(function(index){
+    $(this).attr('id','code'+index)
+    $(this).before($('<button class="btn btn-secondary float-right  copyBtn'+index+'" data-clipboard-action="copy" data-clipboard-target="#code'+index+'">Copy</button>'))
+   new ClipboardJS('.copyBtn'+index);
+  })
 
-  // Open the iframe
-  stackedit.openFile({
-    name: 'Filename', // with an optional filename
-    content: {
-      text: `{{.post.Content}}`// and the Markdown content.
-    }
-    // slient 模式，编辑器不会弹出，只是渲染页面使用
-  },true);
-  // Listen to StackEdit events and apply the changes to the textarea.
-  stackedit.on('fileChange', (file) => {
-    el.innerHTML = file.content.html;
-  });
+  tocDiv=$('#toc')
+  $(':header').each(function(index,element){
+    // 获取id实现锚点功能
+    hID=$(this).attr('id')
+    // 获取h标签后的数字，实现缩进
+    hNum=$(this).prop("tagName").slice(1)
+    // console.log(hNum)
+    tocDiv.append($('<li><a class="btn" style="padding-left:'+hNum*2 +'rem" href="#'+hID+'">'+element.textContent +'</a></li>'))
+  }) 
+
+}
 </script>
 {{template "footer"}}

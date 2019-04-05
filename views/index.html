@@ -1,41 +1,55 @@
-{{define "index"}}<!doctype html>
+{{define "index"}}<!doctype html style="font-size:16px">
 {{template "header"}}
    {{template "navbar" .}}
 
    <div class="container mt-5">
      {{range .postindex}}
     <div class="card mt-5">
-      <!-- <img class="card-img-top" src="#" alt="Card image cap"> -->
       <a href="/postid?id={{.idhex}}" class="btn">
           <div class="card-body">
-              <h5 class="card-title">{{.title}}</h5>
-              <p class="card-text">{{.author}}</p>
-              <p class="card-text">{{.category}}</p>
+              <h2 class="card-title text-dark text-left">{{.title}}</h2>
+              <!-- <p class="card-text text-left text-dark" style="text-indent:2rem">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p> -->
             </div>
-      </a>
-      <div class="card-footer">
-        <small class="text-muted">{{.lastmodified}}</small>
+          </a>
+      <div class="card-footer bg-white border-top-0">
+        <span class="p-2">
+            <span class="oi oi-clock">&nbsp;</span><span class="text-muted" id="lastmodified"> {{.lastmodified}}</span>
+        </span>
+        <span class="p-2">
+            <span class="oi oi-person"></span>&nbsp;<span class="card-text">{{.author}}</span>
+        </span>
+        <span class="p-2">
+            <span class="oi oi-eye"></span>&nbsp;<span class="card-text">0 {{.viewscounts}}views</span>
+        </span>
+        <span class="p-2">
+            <span class="oi oi-chat"></span>&nbsp;<span class="card-text">0 {{.commentscounts}}comments</span>
+        </span>
+        <span class="card-text float-right">{{.category}}</span>
       </div>
     </div>
     {{end}}
-    <div class="card mt-5">
-      <div class="card-body">
-        <h5 class="card-title">Card title</h5>
-        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-      </div>
-      <div class="card-footer">
-        <small class="text-muted">Last updated 3 mins ago</small>
-      </div>
-    </div>
-    <div class="card mt-5">
-      <div class="card-body">
-        <h5 class="card-title">Card title</h5>
-        <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-      </div>
-      <div class="card-footer">
-        <small class="text-muted">Last updated 3 mins ago</small>
-      </div>
-    </div>
    </div>
+   <script>
+     function ConvertUnixnanoStr(unixnanoStr){
+      //  获取unix秒数的INT值
+        unixInt=parseInt(unixnanoStr.slice(0,-6))
+        // 转换为date类型
+        return new Date(unixInt)
+     }
+ window.onload=function(){
+  let lastmodifiedList=document.querySelectorAll('#lastmodified')
+  for (var lastmodified of lastmodifiedList){
+      unixnanoStr=  lastmodified.textContent
+      dateObj=ConvertUnixnanoStr(unixnanoStr)
+      // year=dateObj.getFullYear()
+      // month=dateObj.getMonth()+1
+      // day=dateObj.getDate()
+      // month=month>10?month+'':'0'+month
+      // day=day>10?day:'0'+day
+      // dateStr=year+'-'+month+'-'+day
+
+      lastmodified.textContent=dateObj.toLocaleDateString()+' '+dateObj.toLocaleTimeString()
+  }
+ }</script>
     {{template "footer"}}
 {{end}}

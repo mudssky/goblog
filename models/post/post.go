@@ -11,14 +11,18 @@ import (
 
 // Post 文章的结构体
 type Post struct {
-	ID           bson.ObjectId       `bson:"_id"`
-	IDhex        string              `bson:"idhex"`
-	Author       string              `bson:"author"`
-	Title        string              `bson:"title"`
-	Content      string              `bson:"content"`
-	CreatAt      bson.MongoTimestamp `bson:"creatat"`
-	LastModified bson.MongoTimestamp `bson:"lastmodified"`
-	Category     string              `bson:"category"`
+	ID      bson.ObjectId `bson:"_id"`
+	IDhex   string        `bson:"idhex"`
+	Author  string        `bson:"author"`
+	Title   string        `bson:"title"`
+	Content string        `bson:"content"`
+	CreatAt int64         `bson:"creatat"`
+	// CreatAt       int64         `bson:"creatat"`
+	// LastModified  int64         `bson:"lastmodified"`
+	LastModified  int64  `bson:"lastmodified"`
+	Category      string `bson:"category"`
+	ViewsCounts   int    `bson:"viewscounts"`
+	CommentCounts int    `bson:"commentCounts"`
 }
 
 var (
@@ -35,8 +39,10 @@ func (p *Post) Init(Author string, Title string, Content string, Category string
 	p.Title = Title
 	p.Content = Content
 	p.Category = Category
-	p.CreatAt, _ = bson.NewMongoTimestamp(time.Now(), 1)
+	p.CreatAt = time.Now().UnixNano()
 	p.LastModified = p.CreatAt
+	p.ViewsCounts = 0
+	p.CommentCounts = 0
 	return p
 }
 
@@ -63,7 +69,7 @@ func (p *Post) FindPostByIDhex(objectidhex string) (err error) {
 // GetPostsIndex 获取首页需要用到的文章信息
 func (p *Post) GetPostsIndex() (res []interface{}, err error) {
 	c := GetCollection()
-	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1}).All(&res)
+	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "commentscounts": 1}).All(&res)
 	return
 }
 
@@ -113,6 +119,9 @@ func GetDatabase() *mgo.Database {
 func GetCollection() *mgo.Collection {
 	return collection
 }
+
+/*
 func main() {
 
 }
+*/
