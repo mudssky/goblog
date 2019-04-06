@@ -1,0 +1,20 @@
+{{template "header"}}
+{{template "navbar" .}}
+<div class="container mt-4">
+    <form action="/category/edit?id={{.CategoryInfo.IDhex}}" method="POST">
+        <div class="form-group">
+            <label for="categoryTitle">分类标题</label>
+            <input type="text" name="Name" class="form-control" id="categoryTitle"  placeholder="{{.CategoryInfo.Name}}" value="{{.CategoryInfo.Name}}">
+        </div>
+        <div class="form-group">
+            <label for="EnglishName">分类英文名</label>
+            <input type="text" name="EnglishName" class="form-control" id="EnglishName"  placeholder="英文名字，便于在url中使用" value="{{.CategoryInfo.EnglishName}}">
+        </div>
+        <div class="form-group">
+            <label>描述</label>
+            <textarea name="Description" rows="10" id="categoryDesc" class="form-control">{{.CategoryInfo.Description}}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">更新分类信息</button>
+   </form>
+   </div>
+{{template "footer"}}

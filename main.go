@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 
+	"./models/category"
 	"./models/post"
 	"./models/session"
 	"./models/user"
@@ -351,8 +353,8 @@ func checkSignin(sessionData map[string]interface{}) bool {
 func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 	//1.检查url参数和登录状况
 	urlValue := r.URL.Query()
-	idhex := urlValue["id"][0]
-	if idhex == "" {
+	idhex := urlValue.Get("id")
+	if checkIDhexLen(idhex) {
 		return
 	}
 	sess := session.New()
@@ -416,8 +418,8 @@ func showJumpMessage(message MessagePage, w http.ResponseWriter) {
 func PostIDDeleteHandle(w http.ResponseWriter, r *http.Request) {
 	//1.检查url参数和登录状况
 	urlValue := r.URL.Query()
-	idhex := urlValue["id"][0]
-	if idhex == "" {
+	idhex := urlValue.Get("id")
+	if checkIDhexLen(idhex) {
 		return
 	}
 	sess := session.New()
@@ -440,6 +442,140 @@ func PostIDDeleteHandle(w http.ResponseWriter, r *http.Request) {
 		showJumpMessage(message, w)
 	}
 }
+
+// NewCategoryHandle 处理新建分类页面的路由,首先要检查登录状况
+func NewCategoryHandle(w http.ResponseWriter, r *http.Request) {
+	sess := session.New()
+	sess = sess.SessionStart(w, r)
+	if checkSignin(sess.Data) != true {
+		return
+	}
+	if r.Method == "GET" {
+		temp, err := template.ParseFiles("views/newcategory.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "newcategory.html", sess.Data)
+		if err != nil {
+			LogPanic.Panicln("parse template views/newcategory.html failed", err)
+		}
+	}
+
+	if r.Method == "POST" {
+		r.ParseForm()
+		// 因为是只有登录了才能新建Category，所以多余的表单信息验证也不需要了。
+		LogDebug.Println(r.Form)
+		Name := r.Form.Get("Name")
+		EnglishName := r.Form.Get("EnglishName")
+		Description := r.Form.Get("Description")
+		NewCategory := category.New(Name, EnglishName, Description)
+		NewCategory.Add()
+		showJumpMessage(MessagePage{Message: "添加分类成功", URL: "/category"}, w)
+	}
+}
+
+// CategoryHandle 处理分类页的路由
+func CategoryHandle(w http.ResponseWriter, r *http.Request) {
+	sess := session.New()
+	sess = sess.SessionStart(w, r)
+	if r.Method == "GET" {
+		categoryCotainer := category.Category{}
+		res, finderr := categoryCotainer.FindAllCategory()
+		if finderr != nil {
+			LogPanic.Panicln("get all categoryinfo err", finderr)
+		}
+		sess.Data["CategoryList"] = res
+		temp, err := template.ParseFiles("views/category.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "category.html", sess.Data)
+		if err != nil {
+			LogPanic.Panicln("parse template views/category.html failed", err)
+		}
+	}
+}
+
+func checkIDhexLen(idhex string) bool {
+	if len(strings.TrimSpace(idhex)) == 24 {
+		return true
+	}
+	return false
+}
+
+// CategoryDeleteHandle 执行删除的路由操作
+func CategoryDeleteHandle(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		//检查url参数和登录状况,如果出错获取不到id，会panic没有做其他处理
+		urlValue := r.URL.Query()
+		idhex := urlValue.Get("id")
+		if checkIDhexLen(idhex) {
+			return
+		}
+		sess := session.New()
+		sess = sess.SessionStart(w, r)
+		if checkSignin(sess.Data) != true {
+			showJumpMessage(MessagePage{Message: "只有管理员用户才能进行该操作", URL: "/category"}, w)
+			return
+		}
+		categoryManage := category.Category{}
+		err := categoryManage.FindByIDhexAndDelete(idhex)
+		if err != nil {
+			showJumpMessage(MessagePage{Message: "删除失败，未知错误", URL: "/category"}, w)
+			LogPanic.Panicln("delete category failed", err)
+			return
+		}
+		showJumpMessage(MessagePage{Message: "删除成功", URL: "/category"}, w)
+	}
+
+}
+
+// CategoryEditHandle 处理标签编辑操作的路由
+func CategoryEditHandle(w http.ResponseWriter, r *http.Request) {
+	//检查url参数和登录状况,如果出错获取不到id，会panic没有做其他处理
+	urlValue := r.URL.Query()
+	idhex := urlValue.Get("id")
+	if idhex == "" {
+		return
+	}
+	sess := session.New()
+	sess = sess.SessionStart(w, r)
+	if checkSignin(sess.Data) != true {
+		showJumpMessage(MessagePage{Message: "只有管理员用户才能进行该操作", URL: "/category"}, w)
+		return
+	}
+	if r.Method == "GET" {
+		categoryManage := category.Category{}
+		err := categoryManage.FindOneCategoryInfoByIDhex(idhex)
+		// 如果找不到或者查找过程出错
+		if err != nil {
+			showJumpMessage(MessagePage{Message: "访问目标，未知错误", URL: "/category"}, w)
+			return
+		}
+		sess.Data["CategoryInfo"] = categoryManage
+		temp, err := template.ParseFiles("views/editcategory.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "editcategory.html", sess.Data)
+		if err != nil {
+			LogPanic.Panicln("parse template views/editcategory.html failed", err)
+		}
+		return
+	}
+	if r.Method == "POST" {
+		r.ParseForm()
+		Name := r.Form.Get("Name")
+		EnglishName := r.Form.Get("EnglishName")
+		Description := r.Form.Get("Description")
+		categoryCotainer := category.New(Name, EnglishName, Description)
+		err := categoryCotainer.UpdateByIDhex(idhex)
+		if err != nil {
+			showJumpMessage(MessagePage{Message: "访问目标，未知错误", URL: "/category"}, w)
+		}
+		showJumpMessage(MessagePage{Message: "更新分类信息成功", URL: "/category"}, w)
+	}
+}
 func main() {
 	// 开启静态文件服务，http.StripPrefix提供去掉前缀的静态路由，否则会把路由全部当做路径匹配
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
@@ -457,6 +593,12 @@ func main() {
 	http.HandleFunc("/postid", PostIDHandle)              //获取显示指定文章
 	http.HandleFunc("/postid/edit", PostIDEditHandle)     //编辑指定文章
 	http.HandleFunc("/postid/delete", PostIDDeleteHandle) //删除指定文章
+
+	// 文章标签页路由
+	http.HandleFunc("/category/new", NewCategoryHandle)       //添加标签页面
+	http.HandleFunc("/category", CategoryHandle)              //标签列表页面
+	http.HandleFunc("/category/delete", CategoryDeleteHandle) //标签删除操作路由
+	http.HandleFunc("/category/edit", CategoryEditHandle)     //标签编辑操作路由
 
 	err := http.ListenAndServe(":3333", nil)
 	if err != nil {

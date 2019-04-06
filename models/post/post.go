@@ -19,10 +19,10 @@ type Post struct {
 	CreatAt int64         `bson:"creatat"`
 	// CreatAt       int64         `bson:"creatat"`
 	// LastModified  int64         `bson:"lastmodified"`
-	LastModified  int64  `bson:"lastmodified"`
-	Category      string `bson:"category"`
-	ViewsCounts   int    `bson:"viewscounts"`
-	CommentCounts int    `bson:"commentCounts"`
+	LastModified  int64         `bson:"lastmodified"`
+	CategoryList  []interface{} `bson:"categorylist"`
+	ViewsCounts   int           `bson:"viewscounts"`
+	CommentCounts int           `bson:"commentCounts"`
 }
 
 var (
@@ -38,7 +38,7 @@ func (p *Post) Init(Author string, Title string, Content string, Category string
 	p.Author = Author
 	p.Title = Title
 	p.Content = Content
-	p.Category = Category
+	p.CategoryList = []interface{}{}
 	p.CreatAt = time.Now().UnixNano()
 	p.LastModified = p.CreatAt
 	p.ViewsCounts = 0
@@ -77,7 +77,7 @@ func (p *Post) GetPostsIndex() (res []interface{}, err error) {
 func (p *Post) Update() error {
 	p.ID = bson.ObjectIdHex(p.IDhex)
 	c := GetCollection()
-	err := c.Update(bson.M{"_id": p.ID}, bson.M{"$set": bson.M{"lastmodified": p.LastModified, "author": p.Author, "category": p.Category, "content": p.Content, "title": p.Title}})
+	err := c.Update(bson.M{"_id": p.ID}, bson.M{"$set": bson.M{"lastmodified": p.LastModified, "author": p.Author, "categorylist": p.CategoryList, "content": p.Content, "title": p.Title}})
 	return err
 }
 
