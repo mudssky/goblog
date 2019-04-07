@@ -5,6 +5,9 @@
   <a href="/postid/edit?id={{.post.IDhex}}" class="btn btn-primary form-control">Edit</a>
   <a href="/postid/delete?id={{.post.IDhex}}" class="btn btn-danger form-control">Delete</a>
   {{end}}
+  {{range $i,$v:= .post.CategoryList}}
+  <span class="badge badge-pill badge-info">{{$v}}</span>
+  {{end}}
     <h1>{{.post.Title}}</h1>
 </div>
 <ul id="toc" class="container" style="list-style:none"></ul>

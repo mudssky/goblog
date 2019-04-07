@@ -19,10 +19,10 @@ type Post struct {
 	CreatAt int64         `bson:"creatat"`
 	// CreatAt       int64         `bson:"creatat"`
 	// LastModified  int64         `bson:"lastmodified"`
-	LastModified  int64         `bson:"lastmodified"`
-	CategoryList  []interface{} `bson:"categorylist"`
-	ViewsCounts   int           `bson:"viewscounts"`
-	CommentCounts int           `bson:"commentCounts"`
+	LastModified  int64    `bson:"lastmodified"`
+	CategoryList  []string `bson:"categorylist"`
+	ViewsCounts   int      `bson:"viewscounts"`
+	CommentCounts int      `bson:"commentCounts"`
 }
 
 var (
@@ -32,13 +32,13 @@ var (
 )
 
 // Init 初始化一个Post结构体，根据提供的参数
-func (p *Post) Init(Author string, Title string, Content string, Category string) *Post {
+func (p *Post) Init(Author string, Title string, Content string, CategoryList []string) *Post {
 	p.ID = bson.NewObjectId()
 	p.IDhex = p.ID.Hex()
 	p.Author = Author
 	p.Title = Title
 	p.Content = Content
-	p.CategoryList = []interface{}{}
+	p.CategoryList = CategoryList
 	p.CreatAt = time.Now().UnixNano()
 	p.LastModified = p.CreatAt
 	p.ViewsCounts = 0
@@ -47,8 +47,8 @@ func (p *Post) Init(Author string, Title string, Content string, Category string
 }
 
 // New 返回一个初始化的POST结构体，根据提供的参数
-func New(Author string, Title string, Content string, Category string) *Post {
-	return new(Post).Init(Author, Title, Content, Category)
+func New(Author string, Title string, Content string, CategoryList []string) *Post {
+	return new(Post).Init(Author, Title, Content, CategoryList)
 }
 
 // Add 添加一篇文章的数据到数据库,如果插入过程中出错，会返回错误对象

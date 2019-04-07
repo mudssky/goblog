@@ -55,6 +55,13 @@ func (c *Category) FindAllCategory() (res []interface{}, err error) {
 	return
 }
 
+// FindAllCategoryName  从数据库中获取所有类别的Name值
+func (c *Category) FindAllCategoryName() (res []interface{}, err error) {
+	collection := GetCollection()
+	err = collection.Find(bson.M{}).Select(bson.M{"name": 1}).All(&res)
+	return
+}
+
 // FindByIDhexAndDelete 根据idhex查找，如果没有找到或者其他错误会返回err
 func (c *Category) FindByIDhexAndDelete(idhex string) error {
 	objid := bson.ObjectIdHex(idhex)

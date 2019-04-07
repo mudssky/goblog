@@ -274,6 +274,12 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "GET" {
+		categoryCotainer := category.Category{}
+		namelist, err := categoryCotainer.FindAllCategoryName()
+		if err != nil {
+			LogPanic.Panicln("get categoriesName failed", err)
+		}
+		sess.Data["CategoryNames"] = namelist
 		temp, err := template.ParseFiles("views/newpost.html", "views/components/navbar.html", "views/components/footer.html",
 			"views/components/header.html")
 		if err != nil {
@@ -287,11 +293,12 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == "POST" {
 		r.ParseForm()
-		Author := r.Form["Author"][0]
-		Title := r.Form["Title"][0]
-		Content := r.Form["Content"][0]
-		Category := r.Form["Category"][0]
-		newpost := post.New(Author, Title, Content, Category)
+		Author := r.Form.Get("Author")
+		Title := r.Form.Get("Title")
+		Content := r.Form.Get("Content")
+		Category := r.Form.Get("Category")
+		CategoryList := strings.Split(Category, "&")
+		newpost := post.New(Author, Title, Content, CategoryList)
 		err := newpost.Add()
 		var message MessagePage
 		if err != nil {
@@ -354,7 +361,8 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 	//1.检查url参数和登录状况
 	urlValue := r.URL.Query()
 	idhex := urlValue.Get("id")
-	if checkIDhexLen(idhex) {
+	if !checkIDhexLen(idhex) {
+		fmt.Fprintln(w, "不合法id")
 		return
 	}
 	sess := session.New()
@@ -374,6 +382,12 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		// 找到后渲染到文章编辑页，编辑页基本上和新建页是一样的
 		sess.Data["post"] = curpost
+		categoryCotainer := category.Category{}
+		namelist, err := categoryCotainer.FindAllCategoryName()
+		if err != nil {
+			LogPanic.Panicln("get categoriesName failed", err)
+		}
+		sess.Data["CategoryNames"] = namelist
 		temp, err := template.ParseFiles("views/edit.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
 		if err != nil {
 			LogPanic.Panicln("parse all templates failed", err)
@@ -386,11 +400,12 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == "POST" {
 		r.ParseForm()
-		Author := r.Form["Author"][0]
-		Title := r.Form["Title"][0]
-		Content := r.Form["Content"][0]
-		Category := r.Form["Category"][0]
-		newpost := post.New(Author, Title, Content, Category)
+		Author := r.Form.Get("Author")
+		Title := r.Form.Get("Title")
+		Content := r.Form.Get("Content")
+		Category := r.Form.Get("Category")
+		CategoryList := strings.Split(Category, "&")
+		newpost := post.New(Author, Title, Content, CategoryList)
 		newpost.IDhex = idhex
 		err := newpost.Update()
 		// 如果更新过程出错，说明给的文章id出错，同样重定向到404
@@ -419,7 +434,7 @@ func PostIDDeleteHandle(w http.ResponseWriter, r *http.Request) {
 	//1.检查url参数和登录状况
 	urlValue := r.URL.Query()
 	idhex := urlValue.Get("id")
-	if checkIDhexLen(idhex) {
+	if !checkIDhexLen(idhex) {
 		return
 	}
 	sess := session.New()
@@ -509,7 +524,7 @@ func CategoryDeleteHandle(w http.ResponseWriter, r *http.Request) {
 		//检查url参数和登录状况,如果出错获取不到id，会panic没有做其他处理
 		urlValue := r.URL.Query()
 		idhex := urlValue.Get("id")
-		if checkIDhexLen(idhex) {
+		if !checkIDhexLen(idhex) {
 			return
 		}
 		sess := session.New()
@@ -535,7 +550,8 @@ func CategoryEditHandle(w http.ResponseWriter, r *http.Request) {
 	//检查url参数和登录状况,如果出错获取不到id，会panic没有做其他处理
 	urlValue := r.URL.Query()
 	idhex := urlValue.Get("id")
-	if idhex == "" {
+	if !checkIDhexLen(idhex) {
+		fmt.Fprintf(w, "不合法的id")
 		return
 	}
 	sess := session.New()
