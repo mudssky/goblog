@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"./models/category"
@@ -60,8 +61,18 @@ func init() {
 // IndexHandle 处理首页的逻辑
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
+		pageNum := 1
+		urlValue := r.URL.Query()
+		pageStr := urlValue.Get("page")
+		if pageStr != "" {
+			pageNum, _ = strconv.Atoi(pageStr)
+		}
 		posts := post.Post{}
-		postindex, err := posts.GetPostsIndex()
+		pageNumCount := posts.PageNumCount()
+		if pageNum > pageNumCount || pageNum < 1 {
+			pageNum = 1
+		}
+		postindex, err := posts.GetPostsIndexPaged(pageNum)
 		LogDebug.Println(postindex)
 		LogDebug.Println("path", "/")
 		// 解析需要的模板
@@ -76,7 +87,19 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 		sess = sess.SessionStart(w, r)
 		// SessionMap = sess.Data
 		// LogDebug.Println(sess.Data["signin"])
+		previousNum := pageNum - 1
+		if pageNum <= 1 {
+			previousNum = 0
+		}
+		nextNum := pageNum + 1
+		if nextNum > pageNumCount {
+			nextNum = 0
+		}
 		sess.Data["postindex"] = postindex
+		sess.Data["pageNumList"] = []int{pageNum, pageNum + 1, pageNum + 2}
+		sess.Data["pageNumCount"] = pageNumCount
+		sess.Data["previousNum"] = previousNum
+		sess.Data["nextNum"] = nextNum
 		err = temp.ExecuteTemplate(w, "index", sess.Data)
 		if err != nil {
 			LogPanic.Panicln("parse template views/index.html failed", err)
@@ -94,7 +117,6 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 			LogPanic.Panicln("parse template views/404.html failed", err)
 		}
 	}
-
 }
 func validateSignin(form map[string][]string) (errorMessage string) {
 	username := form["Username"][0]
@@ -303,7 +325,14 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 		var message MessagePage
 		if err != nil {
 			message = MessagePage{Message: "保存文章失败，请重试", URL: "/post/new"}
-
+		}
+		// 添加文章成功，增加对应标签的文章计数
+		categoryCotainer := category.Category{}
+		for _, v := range CategoryList {
+			err := categoryCotainer.AddPostsCountsByName(v)
+			if err != nil {
+				LogWarning.Println("add posts counts failed", err)
+			}
 		}
 		message = MessagePage{Message: "保存文章成功", URL: "/post/new"}
 		temp, err := template.ParseFiles("views/messagepage.html", "views/components/footer.html")
@@ -338,6 +367,10 @@ func PostIDHandle(w http.ResponseWriter, r *http.Request) {
 		LogPanic.Panicln("获取文章失败", err)
 		http.Redirect(w, r, "/404", http.StatusNotFound)
 		return
+	}
+	err = curpost.AddViewsCounts(idhex)
+	if err != nil {
+		LogWarning.Println("AddViewsCounts error", err)
 	}
 	sess.Data["post"] = curpost
 	temp, err := template.ParseFiles("views/post.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")

@@ -55,6 +55,13 @@ func (c *Category) FindAllCategory() (res []interface{}, err error) {
 	return
 }
 
+// AddPostsCountsByName 对对应目录的Count数进行+1操作，如果失败，返回err
+func (c *Category) AddPostsCountsByName(Name string) error {
+	collection = GetCollection()
+	err := collection.Update(bson.M{"name": Name}, bson.M{"$inc": bson.M{"postscounts": 1}})
+	return err
+}
+
 // FindAllCategoryName  从数据库中获取所有类别的Name值
 func (c *Category) FindAllCategoryName() (res []interface{}, err error) {
 	collection := GetCollection()

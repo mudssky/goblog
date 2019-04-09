@@ -19,37 +19,119 @@
             <span class="oi oi-person"></span>&nbsp;<span class="card-text">{{.author}}</span>
         </span>
         <span class="p-2">
-            <span class="oi oi-eye"></span>&nbsp;<span class="card-text">0 {{.viewscounts}}views</span>
+            <span class="oi oi-eye"></span>&nbsp;<span class="card-text">{{.viewscounts}}views</span>
         </span>
         <span class="p-2">
-            <span class="oi oi-chat"></span>&nbsp;<span class="card-text">0 {{.commentscounts}}comments</span>
+            <span class="oi oi-chat"></span>&nbsp;<span class="card-text">{{.commentscounts}}comments</span>
         </span>
         <span class="card-text float-right">{{.category}}</span>
       </div>
     </div>
     {{end}}
+    <nav class="mt-2">
+      <ul class="pagination justify-content-center">
+          {{if ne .previousNum  0}}
+        <li class="page-item">
+          <a class="page-link" href="/?page={{.previousNum}}">Previous</a>
+        </li>
+        {{else}}
+        <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1">Previous</a>
+          </li>
+        {{end}}
+        {{$count:=.pageNumCount}}
+        {{range $i,$v:= .pageNumList}}
+        {{if le $v $count}}
+            {{if eq $i 0}}
+          <li class="page-item active"><a class="page-link" href="/?page={{$v}}">{{$v}}</a></li>
+          {{else}}
+          <li class="page-item"><a class="page-link" href="/?page={{$v}}">{{$v}}</a></li>
+          {{end}}
+        {{end}}
+       {{end}}
+        <li class="page-item disabled" style="line-height: 1em;vertical-align: middle"><a class="page-link" href="#">...</a></li>
+       
+          {{ if ne .nextNum  0}}
+          <li class="page-item">
+              <a class="page-link" href="/?page={{.nextNum}}">Next</a>
+            </li>
+          {{else}}
+          <li class="page-item disabled">
+              <a class="page-link" href="#">Next</a>
+            </li>
+          {{end}}
+      </ul>
+      <ul class="pagination justify-content-center" style="display:none" id="pageAlert">
+          <div class="alert alert-warning" role="alert">
+             请使用正确的页数
+            </div>
+        </ul>
+      <ul class="pagination justify-content-center">
+          <li class="page-item">
+            共 <span id="pageNumCount">{{.pageNumCount}}</span>页<input type="text" class="mx-2" id="jumpPage" style="width:40px"><button id="jumpBtn">跳转</button>
+            </li>
+        </ul>
+    </nav>
    </div>
    <script>
-     function ConvertUnixnanoStr(unixnanoStr){
+     /*function ConvertUnixnanoStr(unixnanoStr){
       //  获取unix秒数的INT值
         unixInt=parseInt(unixnanoStr.slice(0,-6))
+        console.log(unixnanoStr)
         // 转换为date类型
         return new Date(unixInt)
+     }*/
+
+     function ConvertMongoDateToGMT(dateStr){
+      //  截掉时区毫秒数等
+      //  utcDateStr= dateStr.slice(0,-14)
+      // console.log(dateStr)
+       utcDate=new Date(dateStr)
+       return utcDate
      }
  window.onload=function(){
   let lastmodifiedList=document.querySelectorAll('#lastmodified')
   for (var lastmodified of lastmodifiedList){
-      unixnanoStr=  lastmodified.textContent
-      dateObj=ConvertUnixnanoStr(unixnanoStr)
+      dateStr=  lastmodified.textContent
+      // dateObj=ConvertUnixnanoStr(unixnanoStr)
       // year=dateObj.getFullYear()
       // month=dateObj.getMonth()+1
       // day=dateObj.getDate()
       // month=month>10?month+'':'0'+month
       // day=day>10?day:'0'+day
       // dateStr=year+'-'+month+'-'+day
-
-      lastmodified.textContent=dateObj.toLocaleDateString()+' '+dateObj.toLocaleTimeString()
+      gmtDate=ConvertMongoDateToGMT(dateStr)
+      lastmodified.textContent=gmtDate.toLocaleDateString()+' '+gmtDate.toLocaleTimeString()
   }
- }</script>
+ 
+  jumpBtn=$('#jumpBtn')
+  jumpPage=$('#jumpPage')
+  jumpBtn.on('click',function(){
+    jumpPageNum= jumpPage.val()
+    maxPageNum=$('#pageNumCount').text()
+    if (parseInt(jumpPageNum)<= parseInt(maxPageNum)){
+       window.location.href='/?page='+jumpPageNum
+      //  console.log(window.location.href)
+    }else{
+      // console.log(1)
+        $('#pageAlert').fadeIn(3000).fadeOut()
+    }
+  })
+jumpPage.bind('keydown',function(event){
+  if (event.keyCode=="13"){
+    jumpPageNum= jumpPage.val()
+    maxPageNum=$('#pageNumCount').text()
+    if (parseInt(jumpPageNum)<= parseInt(maxPageNum)){
+       window.location.href='/?page='+jumpPageNum
+      //  console.log(window.location.href)
+    }else{
+      // console.log(1)
+        $('#pageAlert').fadeIn(3000).fadeOut()
+    }
+  }
+})
+
+ }
+</script>
     {{template "footer"}}
 {{end}}

@@ -16,14 +16,18 @@ type Post struct {
 	Author  string        `bson:"author"`
 	Title   string        `bson:"title"`
 	Content string        `bson:"content"`
-	CreatAt int64         `bson:"creatat"`
+	CreatAt time.Time     `bson:"creatat"`
 	// CreatAt       int64         `bson:"creatat"`
 	// LastModified  int64         `bson:"lastmodified"`
-	LastModified  int64    `bson:"lastmodified"`
-	CategoryList  []string `bson:"categorylist"`
-	ViewsCounts   int      `bson:"viewscounts"`
-	CommentCounts int      `bson:"commentCounts"`
+	LastModified  time.Time `bson:"lastmodified"`
+	CategoryList  []string  `bson:"categorylist"`
+	ViewsCounts   int       `bson:"viewscounts"`
+	CommentCounts int       `bson:"commentCounts"`
 }
+
+const (
+	pageCount int = 10 //分页默认的每页项目数
+)
 
 var (
 	session    *mgo.Session
@@ -39,7 +43,8 @@ func (p *Post) Init(Author string, Title string, Content string, CategoryList []
 	p.Title = Title
 	p.Content = Content
 	p.CategoryList = CategoryList
-	p.CreatAt = time.Now().UnixNano()
+	p.CreatAt = time.Now()
+	// p.CreatAt = time.Now().UnixNano()
 	p.LastModified = p.CreatAt
 	p.ViewsCounts = 0
 	p.CommentCounts = 0
@@ -66,10 +71,52 @@ func (p *Post) FindPostByIDhex(objectidhex string) (err error) {
 	return
 }
 
+// AddViewsCounts 增加对应文章的浏览数 +1
+func (p *Post) AddViewsCounts(objectidhex string) (err error) {
+	objid := bson.ObjectIdHex(objectidhex)
+	c := GetCollection()
+
+	err = c.UpdateId(objid, bson.M{"$inc": bson.M{"viewscounts": 1}})
+	return
+}
+
 // GetPostsIndex 获取首页需要用到的文章信息
 func (p *Post) GetPostsIndex() (res []interface{}, err error) {
 	c := GetCollection()
 	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "commentscounts": 1}).All(&res)
+	return
+}
+
+// GetPostsIndexDesc 获取首页需要用到的文章信息,按时间倒序排列
+func (p *Post) GetPostsIndexDesc() (res []interface{}, err error) {
+	c := GetCollection()
+	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "commentscounts": 1}).Sort("-lastmodified").All(&res)
+	return
+}
+
+// PostCount  返回总文档数
+func (p *Post) PostCount() (n int, err error) {
+	c := GetCollection()
+	n, err = c.Count()
+	return
+}
+
+// PageNumCount  返回总页数
+func (p *Post) PageNumCount() int {
+	n, err := p.PostCount()
+	// 错误处理，如果出错，只返回一页
+	if err != nil {
+		n = 1
+	}
+	n /= pageCount
+	return n
+}
+
+// GetPostsIndexPaged 分页，很明显需要每页显示的项目数，作为一个api，只需要输入页数返回对应的内容即可。
+// 我们这里设置固定每页的文章数目 pageCount为10。除此之外我们每次要先计算总页数，也要写一个函数
+func (p *Post) GetPostsIndexPaged(pageNum int) (res []interface{}, err error) {
+	c := GetCollection()
+	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "commentscounts": 1}).Sort("-lastmodified").Skip(pageNum - 1).Limit(pageCount).All(&res)
 	return
 }
 
