@@ -28,7 +28,9 @@
               <input type="text" class="form-control" id="inputCategory" name="Category" placeholder="Category" value="">
             </div>
           </div>
+          <div id="textBox" class="">
       <textarea name="Content" id="textarea"  rows="30" class="form-control" value="">{{.post.Content}}</textarea>
+          </div>
       <button  type="submit" class="btn btn-primary form-control" id="" >Update</button>
   </form>
   <button class="btn btn-primary form-control" id="openEdit">Edit with StackEdit</button>
@@ -68,6 +70,52 @@
        reslist.push(categoryname)
       $(inputCategory).val(reslist.join('&'))
      })
+
+     // (1)需要解决一旦拖拽外部文件就覆盖掉当前页面的问题
+    //  解决：给document绑定drop事件 
+    //  drop事件默认触发不了，需要在dragover事件里面阻止默认事件
+   // 这个阻止默认事件是为了让drop事件得以触发
+   document.ondragover = function(e){
+      // console.log(1)
+        e.preventDefault();
+    }
+   document.ondrop = function(e){
+      // console.log(2)
+        e.preventDefault();
+    }
+    // document.ondragenter = function(e){
+    //    console.log('denter')
+    //     e.preventDefault();
+    // }
+
+    // 实现直接拖拽文本文件 读取文本文件进入textarea、
+
+    textBox=document.getElementById('textBox')
+      textareaDom=document.getElementById('textarea')
+   
+      textBox.ondragenter=function(){
+        console.log('enter')
+        textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,.8)';
+      }
+      textBox.ondrop=function(e){
+        // 得到拖拽过来的文件对象
+        console.log('drop')
+        var fileObj=e.dataTransfer.files[0]
+        // console.log(fileObj)
+        var fr = new FileReader()
+        
+        fr.onload=function(){
+          textareaDom.value=this.result
+          textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,0)';
+        }
+        fr.readAsText(fileObj)
+        fr.onerror=function(e){
+          console.log('drap error',e)
+        }
+      }
+      // textBox.ondragover=function(e){
+      //   textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,.8)';
+      // }
   }
 </script>
 {{template "footer"}}

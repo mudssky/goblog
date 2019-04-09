@@ -14,7 +14,7 @@
 <div class="container mt-5" id="article">
 
 </div>
-<div class="invisible">{{.post.Content}}</div>
+<div class="invisible" style="display:none">{{.post.Content}}</div>
 <!-- <script src="/static/js/benweet-stackedit.js-5f37fa9/docs/lib/stackedit.js"></script> -->
 <!-- <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/default.min.css"> -->
 <link rel="stylesheet" href="/static/vender/highlight.js-master/src/styles/vs2015.css">
@@ -57,7 +57,7 @@
   //   el.innerHTML = file.content.html;
   // });
 window.onload=function(){
-  $('code').each(function(index){
+  $('pre code').each(function(index){
     $(this).attr('id','code'+index)
     $(this).before($('<button class="btn btn-secondary float-right  copyBtn'+index+'" data-clipboard-action="copy" data-clipboard-target="#code'+index+'">Copy</button>'))
    new ClipboardJS('.copyBtn'+index);

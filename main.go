@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -625,6 +626,35 @@ func CategoryEditHandle(w http.ResponseWriter, r *http.Request) {
 		showJumpMessage(MessagePage{Message: "更新分类信息成功", URL: "/category"}, w)
 	}
 }
+
+// UploadHandle 处理图片的上传操作
+func UploadHandle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		return
+	}
+	sess := session.New()
+	sess = sess.SessionStart(w, r)
+	if checkSignin(sess.Data) != true {
+		w.Write([]byte("只有管理员用户才能进行该操作"))
+		return
+	}
+	LogDebug.Println(r)
+	// urlValue := r.URL.Query()
+	picHashFileName := r.Header.Get("picHashFileName")
+
+	picbytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		LogWarning.Println("read upload body failed")
+	}
+	filename := "static/assets/" + picHashFileName
+	LogDebug.Println(filename)
+	err = ioutil.WriteFile(filename, picbytes, os.FileMode(0733))
+	if err != nil {
+		LogWarning.Println("write file filed:", err)
+	}
+	w.Write([]byte("upload succeed"))
+
+}
 func main() {
 	// 开启静态文件服务，http.StripPrefix提供去掉前缀的静态路由，否则会把路由全部当做路径匹配
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
@@ -649,6 +679,8 @@ func main() {
 	http.HandleFunc("/category/delete", CategoryDeleteHandle) //标签删除操作路由
 	http.HandleFunc("/category/edit", CategoryEditHandle)     //标签编辑操作路由
 
+	// 图片上传路由
+	http.HandleFunc("/upload", UploadHandle)
 	err := http.ListenAndServe(":3333", nil)
 	if err != nil {
 		LogFatal.Fatal("ListenAndServe error")

@@ -28,16 +28,27 @@
               <input type="text" class="form-control" id="inputCategory" name="Category" value="">
             </div>
           </div>
-      <textarea name="Content" id="textarea"  rows="30" class="form-control"></textarea>
+          <div id="textBox" class="">
+              <textarea name="Content" id="textarea"  rows="30" class="form-control" placeholder="可以直接拖拽文本文件至此处"></textarea>
+            </div>
       <button  type="submit" class="btn btn-primary form-control" id="" >Submit</button>
   </form>
   <button class="btn btn-primary form-control" id="openEdit">Edit with StackEdit</button>
+  <form>
+      <div class="form-group">
+        <label for="uploadMarkdown">上传markdown文档，也可以直接拖拽文件进入上面的文本框</label>
+        <input type="file" class="form-control-file" id="uploadMarkdown">
+      </div>
+    </form>
 </div>
+
 <script src="/static/js/benweet-stackedit.js-5f37fa9/docs/lib/stackedit.min.js"></script>
 <script>
  const el = document.querySelector('#textarea');
  const btn=document.querySelector("#openEdit")
-  const stackedit = new Stackedit();
+  const stackedit = new Stackedit({
+    url: 'https://stackedit.io/app'
+  });
 
   // Open the iframe
   // stackedit.openFile({
@@ -68,6 +79,73 @@
        reslist.push(categoryname)
       $(inputCategory).val(reslist.join('&'))
      })
-  }
+
+    //  读取文件到页面
+    $('#uploadMarkdown').on('change',function(){
+      // this.files 里面是一个文件列表
+      var fileObj=this.files[0]
+      var fileValue=this.value
+      var ext = fileValue.slice(fileValue.lastIndexOf(".")+1).toLowerCase()
+      var reader= new FileReader()
+      if (ext=='md'||ext=='txt'){
+        reader.onload=function(){
+          $('#textarea').val(this.result)
+        }
+        reader.error=function(){
+          alert('加载内容出现错误')
+        }
+       reader.readAsText(fileObj)
+      }else{
+        alert("不支持markdown以外的格式")
+      }
+    
+      
+  })
+ // (1)需要解决一旦拖拽外部文件就覆盖掉当前页面的问题
+    //  解决：给document绑定drop事件 
+    //  drop事件默认触发不了，需要在dragover事件里面阻止默认事件
+   // 这个阻止默认事件是为了让drop事件得以触发
+   document.ondragover = function(e){
+      // console.log(1)
+        e.preventDefault();
+    }
+   document.ondrop = function(e){
+      // console.log(2)
+        e.preventDefault();
+    }
+    // document.ondragenter = function(e){
+    //    console.log('denter')
+    //     e.preventDefault();
+    // }
+
+    // 实现直接拖拽文本文件 读取文本文件进入textarea、
+
+    textBox=document.getElementById('textBox')
+      textareaDom=document.getElementById('textarea')
+   
+      textBox.ondragenter=function(){
+        console.log('enter')
+        textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,.8)';
+      }
+      textBox.ondrop=function(e){
+        // 得到拖拽过来的文件对象
+        console.log('drop')
+        var fileObj=e.dataTransfer.files[0]
+        // console.log(fileObj)
+        var fr = new FileReader()
+        
+        fr.onload=function(){
+          textareaDom.value=this.result
+          textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,0)';
+        }
+        fr.readAsText(fileObj)
+        fr.onerror=function(e){
+          console.log('drap error',e)
+        }
+      }
+      // textBox.ondragover=function(e){
+      //   textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,.8)';
+      // }
+}
 </script>
-{{template "footer"}}
+{{template "footer" }}
