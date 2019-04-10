@@ -57,7 +57,10 @@ func init() {
 		}
 		LogDebug.Println("parse template succeed:", AllTemplate.DefinedTemplates())
 	*/
+
 }
+
+func unescaped(x string) interface{} { return template.HTML(x) }
 
 // IndexHandle 处理首页的逻辑
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +77,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 			pageNum = 1
 		}
 		postindex, err := posts.GetPostsIndexPaged(pageNum)
-		LogDebug.Println(postindex)
+		// LogDebug.Println(postindex)
 		LogDebug.Println("path", "/")
 		// 解析需要的模板
 		temp, err := template.ParseFiles("views/index.html", "views/components/navbar.html", "views/components/footer.html",
@@ -288,6 +291,15 @@ func SignoutHandle(w http.ResponseWriter, r *http.Request) {
 // 	}
 // }
 
+func getSummary(content string) (summary string) {
+	runeContent := []rune(content)
+	if len(runeContent) >= 200 {
+		summary = string(runeContent[:200])
+	}
+	summary = content
+	return
+}
+
 // NewPostHandle 新建一篇文章
 func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 	// 首先开启session,检查登录状态
@@ -319,9 +331,12 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 		Author := r.Form.Get("Author")
 		Title := r.Form.Get("Title")
 		Content := r.Form.Get("Content")
+		// 转义html标签，防止xss
+		// Content = html.EscapeString(Content)
 		Category := r.Form.Get("Category")
 		CategoryList := strings.Split(Category, "&")
-		newpost := post.New(Author, Title, Content, CategoryList)
+		Summary := getSummary(Content)
+		newpost := post.New(Author, Title, Content, CategoryList, Summary)
 		err := newpost.Add()
 		var message MessagePage
 		if err != nil {
@@ -351,8 +366,9 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 // PostIDHandle 根据monggodb的ID字符串来查找文章，返回对应hexid的文章页
 func PostIDHandle(w http.ResponseWriter, r *http.Request) {
 	urlValue := r.URL.Query()
-	idhex := urlValue["id"][0]
-	if idhex == "" {
+	idhex := urlValue.Get("id")
+	if !checkIDhexLen(idhex) {
+		fmt.Fprintf(w, "不合法的id")
 		return
 	}
 	sess := session.New()
@@ -374,10 +390,14 @@ func PostIDHandle(w http.ResponseWriter, r *http.Request) {
 		LogWarning.Println("AddViewsCounts error", err)
 	}
 	sess.Data["post"] = curpost
-	temp, err := template.ParseFiles("views/post.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+	temp := template.New("new")
+	temp = temp.Funcs(template.FuncMap{"unescaped": unescaped})
+	temp, err = temp.ParseFiles("views/post.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
 	if err != nil {
 		LogPanic.Panicln("parse all templates failed", err)
 	}
+	// 	// 注册模板函数，实现渲染模板的时候不转义html尖括号
+
 	err = temp.ExecuteTemplate(w, "post.html", sess.Data)
 	if err != nil {
 		LogPanic.Panicln("parse template views/post.html failed", err)
@@ -437,9 +457,12 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 		Author := r.Form.Get("Author")
 		Title := r.Form.Get("Title")
 		Content := r.Form.Get("Content")
+		// 不进行转码了，go的template会自动对html字符实体进行转码，所以不需要重复劳动
+		// Content = html.EscapeString(Content)
 		Category := r.Form.Get("Category")
 		CategoryList := strings.Split(Category, "&")
-		newpost := post.New(Author, Title, Content, CategoryList)
+		Summary := getSummary(Content)
+		newpost := post.New(Author, Title, Content, CategoryList, Summary)
 		newpost.IDhex = idhex
 		err := newpost.Update()
 		// 如果更新过程出错，说明给的文章id出错，同样重定向到404
@@ -638,7 +661,7 @@ func UploadHandle(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("只有管理员用户才能进行该操作"))
 		return
 	}
-	LogDebug.Println(r)
+	// LogDebug.Println(r)
 	// urlValue := r.URL.Query()
 	picHashFileName := r.Header.Get("picHashFileName")
 

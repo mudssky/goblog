@@ -5,16 +5,29 @@
   <a href="/postid/edit?id={{.post.IDhex}}" class="btn btn-primary form-control">Edit</a>
   <a href="/postid/delete?id={{.post.IDhex}}" class="btn btn-danger form-control">Delete</a>
   {{end}}
-  {{range $i,$v:= .post.CategoryList}}
-  <span class="badge badge-pill badge-info">{{$v}}</span>
-  {{end}}
     <h1>{{.post.Title}}</h1>
-</div>
-<ul id="toc" class="container" style="list-style:none"></ul>
-<div class="container mt-5" id="article">
+    <div class="col-sm-10" id="badges">
+       {{range .post.CategoryList}} 
+       <span class="badge badge-pill badge-info">{{.}}</span>
+        {{end}}
+      </div>
+    <div class="card-footer bg-white border-top-0">
+        <span class="p-2">
+            <span class="oi oi-clock">&nbsp;</span><span class="text-muted" id="lastmodified"> {{.post.LastModified}}</span>
+        </span>
+        <span class="p-2">
+            <span class="oi oi-eye"></span>&nbsp;<span class="card-text">{{.post.ViewsCounts}}views</span>
+        </span>
+        <!-- <span class="p-2"><span class="oi oi-chat"></span>&nbsp;<span class="card-text">{{.commentscounts}}comments</span></span> -->
 
+      </div>
 </div>
-<div class="invisible" style="display:none">{{.post.Content}}</div>
+<div class="container">目录</div>
+<ul id="toc" class="container bg-light" style="list-style:none"></ul>
+<!-- <div class="container mt-5 bg-light" id="article" style="box-shadow:5px 2px 6px"> -->
+<div class="container mt-5 bg-light" id="article"></div>
+</div>
+<pre class="invisible" style="display:none">{{.post.Content}}</pre>
 <!-- <script src="/static/js/benweet-stackedit.js-5f37fa9/docs/lib/stackedit.js"></script> -->
 <!-- <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/default.min.css"> -->
 <link rel="stylesheet" href="/static/vender/highlight.js-master/src/styles/vs2015.css">
@@ -25,6 +38,21 @@
 <script src="/static/vender/marked/marked.min.js"></script>
 <script src="/static/vender/clipboard.js-master/dist/clipboard.min.js"></script>
 <script>
+
+function ConvertMongoDateToGMT(dateStr){
+      //  截掉时区毫秒数等
+      //  utcDateStr= dateStr.slice(0,-14)
+      // console.log(dateStr)
+       utcDate=new Date(dateStr)
+       return utcDate
+     }
+     let lastmodifiedList=document.querySelectorAll('#lastmodified')
+  for (var lastmodified of lastmodifiedList){
+      dateStr=  lastmodified.textContent
+      gmtDate=ConvertMongoDateToGMT(dateStr)
+      lastmodified.textContent=gmtDate.toLocaleDateString()+' '+gmtDate.toLocaleTimeString()
+  }
+
  const el = document.querySelector('#article');
  const articleDom=document.querySelector('.invisible')
  hljs.initHighlightingOnLoad();
@@ -42,7 +70,9 @@
   smartypants: false,
   xhtml: false
 });
- el.innerHTML=marked(articleDom.innerHTML)
+// unescapeHtml=unescape(articleDom.innerHTML)
+// console.log(unescapeHtml)
+
   // const stackedit = new Stackedit();
   // // Open the iframe
   // stackedit.openFile({
@@ -56,7 +86,17 @@
   // stackedit.on('fileChange', (file) => {
   //   el.innerHTML = file.content.html;
   // });
+  function htmlEncode(value){  
+  return $('<div/>').text(value).html();  
+}  
+//Html解码获取Html实体  
+function htmlDecode(value){  
+  return $('<div/>').html(value).text();  
+}  
+  
+el.innerHTML=marked(articleDom.textContent)
 window.onload=function(){
+
   $('pre code').each(function(index){
     $(this).attr('id','code'+index)
     $(this).before($('<button class="btn btn-secondary float-right  copyBtn'+index+'" data-clipboard-action="copy" data-clipboard-target="#code'+index+'">Copy</button>'))
@@ -72,7 +112,6 @@ window.onload=function(){
     // console.log(hNum)
     tocDiv.append($('<li><a class="btn" style="padding-left:'+hNum*2 +'rem" href="#'+hID+'">'+element.textContent +'</a></li>'))
   }) 
-
 }
 </script>
 {{template "footer"}}

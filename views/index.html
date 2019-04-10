@@ -8,10 +8,10 @@
       <a href="/postid?id={{.idhex}}" class="btn">
           <div class="card-body">
               <h2 class="card-title text-dark text-left">{{.title}}</h2>
-              <!-- <p class="card-text text-left text-dark" style="text-indent:2rem">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p> -->
+              <p class="card-text text-dark border-top py-2" style="overflow-wrap:break-word ; white-space:normal;">{{.summary}}</p>
             </div>
           </a>
-      <div class="card-footer bg-white border-top-0">
+      <div class="card-footer bg-white border-top">
         <span class="p-2">
             <span class="oi oi-clock">&nbsp;</span><span class="text-muted" id="lastmodified"> {{.lastmodified}}</span>
         </span>
@@ -21,10 +21,8 @@
         <span class="p-2">
             <span class="oi oi-eye"></span>&nbsp;<span class="card-text">{{.viewscounts}}views</span>
         </span>
-        <span class="p-2">
-            <span class="oi oi-chat"></span>&nbsp;<span class="card-text">{{.commentscounts}}comments</span>
-        </span>
-        <span class="card-text float-right">{{.category}}</span>
+        <!-- <span class="p-2"><span class="oi oi-chat"></span>&nbsp;<span class="card-text">{{.commentscounts}}comments</span></span> -->
+        <span class="card-text float-right"></span>
       </div>
     </div>
     {{end}}

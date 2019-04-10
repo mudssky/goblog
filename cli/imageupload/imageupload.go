@@ -157,7 +157,10 @@ func main() {
 		}
 		log.Println("new pic gen completed:", newPicPath)
 
+		// 只有当目标网址的参数被解析的时候才进行上传
+
 		uploadPicture(picbytes, picHashFileName, target, cookie)
+
 		// 接下来，要把markdown里面的图片路径进行替换
 		prePicPath := prefix + picHashName + picExt
 		newbytes = append(newbytes, prePicPath...)

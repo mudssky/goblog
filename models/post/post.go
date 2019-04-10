@@ -22,7 +22,8 @@ type Post struct {
 	LastModified  time.Time `bson:"lastmodified"`
 	CategoryList  []string  `bson:"categorylist"`
 	ViewsCounts   int       `bson:"viewscounts"`
-	CommentCounts int       `bson:"commentCounts"`
+	CommentCounts int       `bson:"commentcounts"`
+	Summary       string    `bson:"summary"`
 }
 
 const (
@@ -36,7 +37,7 @@ var (
 )
 
 // Init 初始化一个Post结构体，根据提供的参数
-func (p *Post) Init(Author string, Title string, Content string, CategoryList []string) *Post {
+func (p *Post) Init(Author string, Title string, Content string, CategoryList []string, Summary string) *Post {
 	p.ID = bson.NewObjectId()
 	p.IDhex = p.ID.Hex()
 	p.Author = Author
@@ -48,12 +49,13 @@ func (p *Post) Init(Author string, Title string, Content string, CategoryList []
 	p.LastModified = p.CreatAt
 	p.ViewsCounts = 0
 	p.CommentCounts = 0
+	p.Summary = Summary
 	return p
 }
 
 // New 返回一个初始化的POST结构体，根据提供的参数
-func New(Author string, Title string, Content string, CategoryList []string) *Post {
-	return new(Post).Init(Author, Title, Content, CategoryList)
+func New(Author string, Title string, Content string, CategoryList []string, Summary string) *Post {
+	return new(Post).Init(Author, Title, Content, CategoryList, Summary)
 }
 
 // Add 添加一篇文章的数据到数据库,如果插入过程中出错，会返回错误对象
@@ -83,14 +85,14 @@ func (p *Post) AddViewsCounts(objectidhex string) (err error) {
 // GetPostsIndex 获取首页需要用到的文章信息
 func (p *Post) GetPostsIndex() (res []interface{}, err error) {
 	c := GetCollection()
-	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "commentscounts": 1}).All(&res)
+	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "summary": 1}).All(&res)
 	return
 }
 
 // GetPostsIndexDesc 获取首页需要用到的文章信息,按时间倒序排列
 func (p *Post) GetPostsIndexDesc() (res []interface{}, err error) {
 	c := GetCollection()
-	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "commentscounts": 1}).Sort("-lastmodified").All(&res)
+	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "summary": 1}).Sort("-lastmodified").All(&res)
 	return
 }
 
@@ -116,7 +118,7 @@ func (p *Post) PageNumCount() int {
 // 我们这里设置固定每页的文章数目 pageCount为10。除此之外我们每次要先计算总页数，也要写一个函数
 func (p *Post) GetPostsIndexPaged(pageNum int) (res []interface{}, err error) {
 	c := GetCollection()
-	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "commentscounts": 1}).Sort("-lastmodified").Skip(pageNum - 1).Limit(pageCount).All(&res)
+	err = c.Find(bson.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "summary": 1}).Sort("-lastmodified").Skip(pageNum - 1).Limit(pageCount).All(&res)
 	return
 }
 
@@ -124,7 +126,7 @@ func (p *Post) GetPostsIndexPaged(pageNum int) (res []interface{}, err error) {
 func (p *Post) Update() error {
 	p.ID = bson.ObjectIdHex(p.IDhex)
 	c := GetCollection()
-	err := c.Update(bson.M{"_id": p.ID}, bson.M{"$set": bson.M{"lastmodified": p.LastModified, "author": p.Author, "categorylist": p.CategoryList, "content": p.Content, "title": p.Title}})
+	err := c.Update(bson.M{"_id": p.ID}, bson.M{"$set": bson.M{"lastmodified": p.LastModified, "author": p.Author, "categorylist": p.CategoryList, "content": p.Content, "title": p.Title, "summary": p.Summary}})
 	return err
 }
 

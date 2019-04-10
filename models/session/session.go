@@ -49,7 +49,7 @@ func (s *Session) GenSessionID() string {
 // SessionStart ,获取session，如果不能从cookie中获取SessionID就新创建一个session并加入mongodb同时设置cookie
 func (s *Session) SessionStart(w http.ResponseWriter, r *http.Request) (session *Session) {
 	cookie, err := r.Cookie(s.CookieName)
-	log.Println("SessionStart cookie:", cookie.Value)
+	log.Println("SessionStart cookie:", cookie)
 	// log.Println("SessionStart sid:", s.SessionID)
 	// 如果cookie中找不到SessionID的值，说明客户端没有sessionID或者cookie被删除，新建一个session并加入到cookie中
 	if err != nil || cookie.Value == "" {
@@ -60,6 +60,7 @@ func (s *Session) SessionStart(w http.ResponseWriter, r *http.Request) (session 
 		cookie := http.Cookie{Name: s.CookieName, Value: url.QueryEscape(sid), Path: "/", HttpOnly: true, MaxAge: s.Maxlifetime}
 		s.insertNewSession(s)
 		http.SetCookie(w, &cookie)
+		session = s
 	} else {
 		// log.Println(2)
 		sid, _ := url.QueryUnescape(cookie.Value)
