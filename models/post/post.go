@@ -110,7 +110,12 @@ func (p *Post) PageNumCount() int {
 	if err != nil {
 		n = 1
 	}
-	n /= pageCount
+	if n > pageCount {
+		n /= pageCount
+		n++
+	} else {
+		n /= pageCount
+	}
 	return n
 }
 
