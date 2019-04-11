@@ -6,9 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,9 +24,10 @@ var (
 	LogWarning *log.Logger
 	LogPanic   *log.Logger
 	LogFatal   *log.Logger
-
 	// 初始化过程中，一次性解析所有模板
-	GlobalTemp *template.Template
+	// 由于每次请求都是重新解析的，是动态页面，所以一次性解析不适用
+	// AllTemplate *template.Template
+	// SessionMap map[string]interface{}
 )
 
 // MessagePage 存储跳转页渲染信息的结构体
@@ -37,27 +36,12 @@ type MessagePage struct {
 	URL     string
 }
 
-// 加载dir 目录下所有结尾为.html的文件，并把相对路径的字符串加入结果的字符串切片。
-func loadTemplateDir(dir string) (dirs []string) {
-	fileList, err := ioutil.ReadDir(dir)
-	if err != nil {
-		LogFatal.Fatalln("read template dir error", err)
-	}
-	for _, v := range fileList {
-		if !v.IsDir() {
-			if strings.HasSuffix(v.Name(), ".html") {
-				dirs = append(dirs, filepath.Join(dir, v.Name()))
-			}
-			// 如果不是文件是目录，那么递归遍历
-		} else {
-			newdirs := loadTemplateDir(filepath.Join(dir, v.Name()))
-			dirs = append(dirs, newdirs...)
-		}
-	}
-	return
-}
 func init() {
 	// 创建输出日志文件
+	/*logFile, err := os.Create("./" + time.Now().Format("20060102") + ".log")
+	if err != nil {
+		fmt.Println(err)
+	}*/
 	logFile := os.Stdout
 	errFile := os.Stderr
 	LogDebug = log.New(logFile, "[Debug]:", log.Ldate|log.Ltime|log.Llongfile)
@@ -65,7 +49,7 @@ func init() {
 	LogPanic = log.New(errFile, "[Panic]:", log.Ldate|log.Ltime|log.Llongfile)
 	LogFatal = log.New(errFile, "[Fatal]:", log.Ldate|log.Ltime|log.Llongfile)
 	/*
-		// init函数里面用:=赋值 相当于给局部变量复制，所以我们要用=赋值
+		// init函数里面用:=赋值 相当于给局部变量复制，所以我们要用=复制
 		var alltemperr error
 		AllTemplate, alltemperr = template.ParseFiles("views/index.html", "views/components/navbar.html", "views/components/footer.html","views/components/header.html", "views/signin.html", "views/signup.html")
 		if alltemperr != nil {
@@ -73,17 +57,6 @@ func init() {
 		}
 		LogDebug.Println("parse template succeed:", AllTemplate.DefinedTemplates())
 	*/
-	templates := loadTemplateDir("views")
-	LogDebug.Printf("load templates succeed ,total template count is %v \n%v\n", len(templates), templates)
-	var err error
-	// GlobalTemp, err = template.ParseFiles("views/index.html", "views/components/navbar.html", "views/components/footer.html",
-	// 	"views/components/header.html", "views/404.html", "views/category.html", "views/edit.html", "views/editcategory.html", "views/messagepage.html", "views/newcategory.html", "views/newpost.html",
-	// 	"views/post.html", "views/signin.html", "views/signup.html")
-	GlobalTemp, err = template.ParseFiles(templates...)
-	if err != nil {
-		LogFatal.Fatalln("parse all template failed", err)
-	}
-	GlobalTemp.Funcs(template.FuncMap{"unescaped": unescaped})
 
 }
 
@@ -106,6 +79,13 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 		postindex, err := posts.GetPostsIndexPaged(pageNum)
 		// LogDebug.Println(postindex)
 		LogDebug.Println("path", "/")
+		// 解析需要的模板
+		temp, err := template.ParseFiles("views/index.html", "views/components/navbar.html", "views/components/footer.html",
+			"views/components/header.html")
+		// temp, err := template.ParseFiles("views/index.html")
+		if err != nil {
+			LogPanic.Panicln("parse template views/index.html failed", err)
+		}
 		// 获取session中的数据
 		sess := session.New()
 		sess = sess.SessionStart(w, r)
@@ -124,22 +104,27 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 		sess.Data["pageNumCount"] = pageNumCount
 		sess.Data["previousNum"] = previousNum
 		sess.Data["nextNum"] = nextNum
-		err = GlobalTemp.ExecuteTemplate(w, "index", sess.Data)
+		err = temp.ExecuteTemplate(w, "index", sess.Data)
 		if err != nil {
 			LogPanic.Panicln("parse template views/index.html failed", err)
 		}
 		// http包默认的路由规则，按照最长前缀匹配
 		// 所有路径都可以匹配到/,那样404页面就失去作用了，所以当/匹配失败的时候展示404页面
 	} else {
-		err := GlobalTemp.ExecuteTemplate(w, "404.html", nil)
+		temp, err := template.ParseFiles("views/404.html")
+		// temp, err := template.ParseFiles("views/index.html")
+		if err != nil {
+			LogPanic.Panicln("parse template views/404.html failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "404.html", nil)
 		if err != nil {
 			LogPanic.Panicln("parse template views/404.html failed", err)
 		}
 	}
 }
-func validateSignin(form url.Values) (errorMessage string) {
-	username := form.Get("Username")
-	password := form.Get("Password")
+func validateSignin(form map[string][]string) (errorMessage string) {
+	username := form["Username"][0]
+	password := form["Password"][0]
 	if matched, _ := regexp.MatchString(`\w{4,20}`, username); !matched {
 		errorMessage = "请输入正确的用户名"
 		return
@@ -155,21 +140,29 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 	LogDebug.Println("path", "/signin")
 	// GET请求返回登录页
 	if r.Method == "GET" {
-
-		err := GlobalTemp.ExecuteTemplate(w, "signin.html", nil)
+		// 解析需要的模板
+		temp, err := template.ParseFiles("views/signin.html", "views/components/navbar.html", "views/components/footer.html", "views/components/header.html")
+		if err != nil {
+			LogPanic.Panicln("parse template views/index.html failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "signin.html", nil)
 		if err != nil {
 			LogPanic.Panicln("parse template views/signin.html failed", err)
 		}
 		return
 	}
-	r.ParseForm()
 	// POST请求，处理登录逻辑
 	if r.Method == "POST" {
+		r.ParseForm()
 		var errorMessage string
 		errorMessage = validateSignin(r.Form)
 		// 如果登陆过程出错，仍显示登录页，并显示错误信息
 		if errorMessage != "" {
-			err := GlobalTemp.ExecuteTemplate(w, "signin.html", errorMessage)
+			temp, err := template.ParseFiles("views/signin.html", "views/components/navbar.html", "views/components/footer.html", "views/components/header.html")
+			if err != nil {
+				LogPanic.Panicln("parse template views/index.html failed", err)
+			}
+			err = temp.ExecuteTemplate(w, "signin.html", errorMessage)
 			if err != nil {
 				LogPanic.Panicln("parse template views/signin.html failed", err)
 			}
@@ -179,7 +172,7 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 			// sess.Set("dsa", "dsa")
 			// sess.Save()
 			// fmt.Println(sess)
-			username := r.Form.Get("Username")
+			username := r.Form["Username"][0]
 			sess = sess.SessionStart(w, r)
 			// 登陆成功，自动跳转到首页,设置session记录登录状态
 			sess.Set("signin", true)
@@ -187,7 +180,11 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 			sess.Save()
 			succeedMessage := fmt.Sprintf("登录成功,%s", username)
 			message := MessagePage{Message: succeedMessage, URL: "/"}
-			err := GlobalTemp.ExecuteTemplate(w, "messagepage.html", message)
+			temp, err := template.ParseFiles("views/messagepage.html", "views/components/footer.html")
+			if err != nil {
+				LogPanic.Panicln("parse all templates failed", err)
+			}
+			err = temp.ExecuteTemplate(w, "messagepage.html", message)
 			if err != nil {
 				LogPanic.Panicln("parse template views/messagepage.html failed", err)
 			}
@@ -218,7 +215,11 @@ func validateSignup(form map[string][]string) (errorMessage string) {
 func SignupHandle(w http.ResponseWriter, r *http.Request) {
 	LogDebug.Println("path", "/signup")
 	if r.Method == "GET" {
-		err := GlobalTemp.ExecuteTemplate(w, "signup.html", nil)
+		temp, err := template.ParseFiles("views/signup.html", "views/components/navbar.html", "views/components/footer.html", "views/components/header.html")
+		if err != nil {
+			LogPanic.Panicln("parse template views/index.html failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "signup.html", nil)
 		if err != nil {
 			LogPanic.Panicln("parse template views/signin.html failed", err)
 		}
@@ -232,22 +233,30 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 		errorMessage := validateSignup(r.Form)
 		LogDebug.Println(errorMessage)
 		// 如果errorMessage=""，说明验证都能正常通过，我们还要验证用户名是否重复，查询mongodb中的用户表
-		if errorMessage == "" && user.CheckUserName(r.Form.Get("Username")) {
+		if errorMessage == "" && user.CheckUserName(r.Form["Username"][0]) {
 			errorMessage = "输入的用户名已经存在"
 		}
 		if errorMessage != "" {
-			err := GlobalTemp.ExecuteTemplate(w, "signup.html", errorMessage)
+			temp, err := template.ParseFiles("views/signup.html", "views/components/navbar.html", "views/components/footer.html", "views/components/header.html")
+			if err != nil {
+				LogPanic.Panicln("parse all templates failed", err)
+			}
+			err = temp.ExecuteTemplate(w, "signup.html", errorMessage)
 			if err != nil {
 				LogPanic.Panicln("parse template views/signup.html failed", err)
 			}
 		} else {
 			message := MessagePage{Message: "注册成功", URL: "/signin"}
-			err := user.InsertUser(&user.User{Username: r.Form.Get("Username"), Password: r.Form.Get("Password"), Email: r.Form.Get("Email"), ID: bson.NewObjectId()})
+			err := user.InsertUser(&user.User{Username: r.Form["Username"][0], Password: r.Form["Password"][0], Email: r.Form["Email"][0], ID: bson.NewObjectId()})
 			if err != nil {
 				log.Panicln("insert user failed", err)
 			}
-
-			err = GlobalTemp.ExecuteTemplate(w, "messagepage.html", message)
+			// 跳转页，自动跳转到登录页
+			temp, err := template.ParseFiles("views/messagepage.html", "views/components/footer.html")
+			if err != nil {
+				LogPanic.Panicln("parse all templates failed", err)
+			}
+			err = temp.ExecuteTemplate(w, "messagepage.html", message)
 			if err != nil {
 				LogPanic.Panicln("parse template views/messagepage.html failed", err)
 			}
@@ -306,7 +315,12 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 			LogPanic.Panicln("get categoriesName failed", err)
 		}
 		sess.Data["CategoryNames"] = namelist
-		err = GlobalTemp.ExecuteTemplate(w, "newpost.html", sess.Data)
+		temp, err := template.ParseFiles("views/newpost.html", "views/components/navbar.html", "views/components/footer.html",
+			"views/components/header.html")
+		if err != nil {
+			LogPanic.Panicln("parse template views/newpost.html failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "newpost.html", sess.Data)
 		if err != nil {
 			LogPanic.Panicln("parse template views/newpost.html failed", err)
 		}
@@ -337,7 +351,11 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		message = MessagePage{Message: "保存文章成功", URL: "/post/new"}
-		err = GlobalTemp.ExecuteTemplate(w, "messagepage.html", message)
+		temp, err := template.ParseFiles("views/messagepage.html", "views/components/footer.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "messagepage.html", message)
 		if err != nil {
 			LogPanic.Panicln("parse template views/messagepage.html failed", err)
 		}
@@ -372,7 +390,15 @@ func PostIDHandle(w http.ResponseWriter, r *http.Request) {
 		LogWarning.Println("AddViewsCounts error", err)
 	}
 	sess.Data["post"] = curpost
-	err = GlobalTemp.ExecuteTemplate(w, "post.html", sess.Data)
+	temp := template.New("new")
+	temp = temp.Funcs(template.FuncMap{"unescaped": unescaped})
+	temp, err = temp.ParseFiles("views/post.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+	if err != nil {
+		LogPanic.Panicln("parse all templates failed", err)
+	}
+	// 	// 注册模板函数，实现渲染模板的时候不转义html尖括号
+
+	err = temp.ExecuteTemplate(w, "post.html", sess.Data)
 	if err != nil {
 		LogPanic.Panicln("parse template views/post.html failed", err)
 	}
@@ -416,8 +442,11 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 			LogPanic.Panicln("get categoriesName failed", err)
 		}
 		sess.Data["CategoryNames"] = namelist
-
-		err = GlobalTemp.ExecuteTemplate(w, "edit.html", sess.Data)
+		temp, err := template.ParseFiles("views/edit.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "edit.html", sess.Data)
 		if err != nil {
 			LogPanic.Panicln("parse template views/edit.html failed", err)
 		}
@@ -447,8 +476,11 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func showJumpMessage(message MessagePage, w http.ResponseWriter) {
-
-	err := GlobalTemp.ExecuteTemplate(w, "messagepage.html", message)
+	temp, err := template.ParseFiles("views/messagepage.html", "views/components/footer.html")
+	if err != nil {
+		LogPanic.Panicln("parse all templates failed", err)
+	}
+	err = temp.ExecuteTemplate(w, "messagepage.html", message)
 	if err != nil {
 		LogPanic.Panicln("parse template views/messagepage.html failed", err)
 	}
@@ -491,8 +523,11 @@ func NewCategoryHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "GET" {
-
-		err := GlobalTemp.ExecuteTemplate(w, "newcategory.html", sess.Data)
+		temp, err := template.ParseFiles("views/newcategory.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "newcategory.html", sess.Data)
 		if err != nil {
 			LogPanic.Panicln("parse template views/newcategory.html failed", err)
 		}
@@ -517,13 +552,16 @@ func CategoryHandle(w http.ResponseWriter, r *http.Request) {
 	sess = sess.SessionStart(w, r)
 	if r.Method == "GET" {
 		categoryCotainer := category.Category{}
-		res, err := categoryCotainer.FindAllCategory()
-		if err != nil {
-			LogPanic.Panicln("get all categoryinfo err", err)
+		res, finderr := categoryCotainer.FindAllCategory()
+		if finderr != nil {
+			LogPanic.Panicln("get all categoryinfo err", finderr)
 		}
 		sess.Data["CategoryList"] = res
-
-		err = GlobalTemp.ExecuteTemplate(w, "category.html", sess.Data)
+		temp, err := template.ParseFiles("views/category.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "category.html", sess.Data)
 		if err != nil {
 			LogPanic.Panicln("parse template views/category.html failed", err)
 		}
@@ -588,8 +626,11 @@ func CategoryEditHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		sess.Data["CategoryInfo"] = categoryManage
-
-		err = GlobalTemp.ExecuteTemplate(w, "editcategory.html", sess.Data)
+		temp, err := template.ParseFiles("views/editcategory.html", "views/components/footer.html", "views/components/header.html", "views/components/navbar.html")
+		if err != nil {
+			LogPanic.Panicln("parse all templates failed", err)
+		}
+		err = temp.ExecuteTemplate(w, "editcategory.html", sess.Data)
 		if err != nil {
 			LogPanic.Panicln("parse template views/editcategory.html failed", err)
 		}
