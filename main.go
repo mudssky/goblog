@@ -313,8 +313,9 @@ func getSummary(content string) (summary string) {
 	runeContent := []rune(content)
 	if len(runeContent) >= 200 {
 		summary = string(runeContent[:200])
+	} else {
+		summary = content
 	}
-	summary = content
 	return
 }
 
@@ -660,6 +661,7 @@ func UploadHandle(w http.ResponseWriter, r *http.Request) {
 	err = ioutil.WriteFile(filename, picbytes, os.FileMode(0733))
 	if err != nil {
 		LogWarning.Println("write file filed:", err)
+		w.Write([]byte("upload failed"))
 	}
 	w.Write([]byte("upload succeed"))
 }
