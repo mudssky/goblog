@@ -110,12 +110,14 @@ func (p *Post) PageNumCount() int {
 	if err != nil {
 		n = 1
 	}
-	if n > pageCount {
+	// 如果是整页数，那么页数就是总文档数/每页文档数，如果不是整页数，页数需要+1
+	if n%pageCount == 0 {
 		n /= pageCount
-		n++
 	} else {
 		n /= pageCount
+		n++
 	}
+
 	return n
 }
 
