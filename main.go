@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -56,6 +57,28 @@ func loadTemplateDir(dir string) (dirs []string) {
 	}
 	return
 }
+func loadConfig() {
+	confbytes, err := ioutil.ReadFile("config.json")
+	if err != nil {
+		log.Fatalln("read config file error", err)
+	}
+	newuser := &user.User{}
+	err = json.Unmarshal(confbytes, newuser)
+	if err != nil {
+		log.Fatalln("json config file error", err)
+	}
+	log.Println(newuser)
+	if user.Exist(newuser) {
+		log.Println("user already exist")
+	} else {
+		newuser.ID = bson.NewObjectId()
+		err = user.InsertUser(newuser)
+		if err != nil {
+			log.Fatalln("user insert error", err)
+		}
+	}
+	log.Println("creat only user succeed")
+}
 func init() {
 	// 创建输出日志文件
 	logFile := os.Stdout
@@ -64,6 +87,7 @@ func init() {
 	LogWarning = log.New(logFile, "[Warning]:", log.Ldate|log.Ltime|log.Llongfile)
 	LogPanic = log.New(errFile, "[Panic]:", log.Ldate|log.Ltime|log.Llongfile)
 	LogFatal = log.New(errFile, "[Fatal]:", log.Ldate|log.Ltime|log.Llongfile)
+	loadConfig()
 	/*
 		// init函数里面用:=赋值 相当于给局部变量复制，所以我们要用=赋值
 		var alltemperr error
@@ -224,6 +248,8 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	w.Write([]byte("注册功能暂未开放"))
+	return
 	if r.Method == "POST" {
 		// 解析表单数据
 		r.ParseForm()
@@ -635,6 +661,11 @@ func UploadHandle(w http.ResponseWriter, r *http.Request) {
 		LogWarning.Println("write file filed:", err)
 	}
 	w.Write([]byte("upload succeed"))
+}
+
+// SearchHandle 处理搜索功能的路由
+func SearchHandle(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("搜索功能暂未实装"))
 
 }
 func main() {
@@ -660,6 +691,8 @@ func main() {
 	http.HandleFunc("/category", CategoryHandle)              //标签列表页面
 	http.HandleFunc("/category/delete", CategoryDeleteHandle) //标签删除操作路由
 	http.HandleFunc("/category/edit", CategoryEditHandle)     //标签编辑操作路由
+	// 搜索框路由
+	http.HandleFunc("/search", SearchHandle)
 
 	// 图片上传路由
 	http.HandleFunc("/upload", UploadHandle)

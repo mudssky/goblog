@@ -51,9 +51,12 @@ func CheckUserName(username string) bool {
 	}
 	return false
 }
+
+// CheckLogin 检查对应用户名和密码在数据库中能否找到，如果能找到，返回true。
 func CheckLogin(username string, password string) bool {
 	res := User{}
 	err := collection.Find(bson.M{"username": username, "password": password}).One(&res)
+	// 没有mgo.ErrNotFound错误，说明找到了。其他错误说明没找到。
 	if err != mgo.ErrNotFound {
 		return true
 	}
@@ -75,6 +78,17 @@ func GetDatabase() *mgo.Database {
 // GetCollection 获取集合对象
 func GetCollection() *mgo.Collection {
 	return collection
+}
+
+// Exist 判断用户是否存在
+func Exist(user *User) bool {
+	collection := GetCollection()
+	var res interface{}
+	err := collection.Find(bson.M{"username": user.Username}).One(&res)
+	if err != mgo.ErrNotFound {
+		return true
+	}
+	return false
 }
 
 /*func main() {
