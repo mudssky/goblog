@@ -666,6 +666,40 @@ func UploadHandle(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("upload succeed"))
 }
 
+// MyStripPrefixAndCheck 修改去前缀的方法，检查目录，不存在的文件返回404
+func MyStripPrefixAndCheck(prefix string, h http.Handler) http.Handler {
+	if prefix == "" {
+		return h
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//log.Println("enter",r.URL.Path)
+		f,err:= os.Stat("."+r.URL.Path)
+		//判断目录或者文件是否存在，如果存在，不存在，返回404。再判断是否是目录,是目录直接返回404
+		if err!=nil{
+			log.Println(r.URL.Path)
+			http.NotFound(w,r)
+			return
+		}
+		if f.IsDir(){
+			log.Println(r.URL.Path)
+			http.NotFound(w,r)
+			return
+		}
+		if p := strings.TrimPrefix(r.URL.Path, prefix); len(p) < len(r.URL.Path) {
+			//log.Println("excuted",r.URL.Path)
+			r2 := new(http.Request)
+			*r2 = *r
+			r2.URL = new(url.URL)
+			*r2.URL = *r.URL
+			r2.URL.Path = p
+			h.ServeHTTP(w, r2)
+		} else {
+			http.NotFound(w, r)
+		}
+	})
+
+}
+
 // SearchHandle 处理搜索功能的路由
 func SearchHandle(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("搜索功能暂未实装"))
@@ -673,7 +707,7 @@ func SearchHandle(w http.ResponseWriter, r *http.Request) {
 }
 func main() {
 	// 开启静态文件服务，http.StripPrefix提供去掉前缀的静态路由，否则会把路由全部当做路径匹配
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	http.Handle("/static/", MyStripPrefixAndCheck("/static/", http.FileServer(http.Dir("./static"))))
 	LogDebug.Println("FileServer start，root ./static")
 
 	// 首页路由

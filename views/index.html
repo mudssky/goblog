@@ -87,17 +87,12 @@
        utcDate=new Date(dateStr)
        return utcDate
      }
+
+     
  window.onload=function(){
   let lastmodifiedList=document.querySelectorAll('#lastmodified')
   for (var lastmodified of lastmodifiedList){
       dateStr=  lastmodified.textContent
-      // dateObj=ConvertUnixnanoStr(unixnanoStr)
-      // year=dateObj.getFullYear()
-      // month=dateObj.getMonth()+1
-      // day=dateObj.getDate()
-      // month=month>10?month+'':'0'+month
-      // day=day>10?day:'0'+day
-      // dateStr=year+'-'+month+'-'+day
       gmtDate=ConvertMongoDateToGMT(dateStr)
       lastmodified.textContent=gmtDate.toLocaleDateString()+' '+gmtDate.toLocaleTimeString()
   }
