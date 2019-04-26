@@ -187,7 +187,10 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	r.ParseForm()
+	err:=r.ParseForm()
+	if err!=nil{
+		LogPanic.Panicln("parse form error siginhandle",err)
+	}
 	// POST请求，处理登录逻辑
 	if r.Method == "POST" {
 		var errorMessage string
@@ -209,7 +212,10 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 			// 登陆成功，自动跳转到首页,设置session记录登录状态
 			sess.Set("signin", true)
 			sess.Set("username", username)
-			sess.Save()
+			err=sess.Save()
+			if err!=nil{
+				LogPanic.Panicln("save session failed signin",err)
+			}
 			succeedMessage := fmt.Sprintf("登录成功,%s", username)
 			message := MessagePage{Message: succeedMessage, URL: "/"}
 			err := GlobalTemp.ExecuteTemplate(w, "messagepage.html", message)
@@ -251,6 +257,7 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte("注册功能暂未开放"))
 	return
+	/*
 	if r.Method == "POST" {
 		// 解析表单数据
 		r.ParseForm()
@@ -281,7 +288,7 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 			// http.Redirect(w, r, "/signin", http.StatusFound)
 		}
 		// r.Form["Username"]
-	}
+	}*/
 }
 
 // SignoutHandle 退出登录的路由
@@ -341,7 +348,10 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "POST" {
-		r.ParseForm()
+		err:=r.ParseForm()
+		if err!=nil{
+			LogPanic.Panicln("parse Form error",err)
+		}
 		Author := r.Form.Get("Author")
 		Title := r.Form.Get("Title")
 		Content := r.Form.Get("Content")
@@ -351,7 +361,7 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 		CategoryList := strings.Split(Category, "&")
 		Summary := getSummary(Content)
 		newpost := post.New(Author, Title, Content, CategoryList, Summary)
-		err := newpost.Add()
+		err = newpost.Add()
 		var message MessagePage
 		if err != nil {
 			message = MessagePage{Message: "保存文章失败，请重试", URL: "/post/new"}
@@ -452,7 +462,11 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "POST" {
-		r.ParseForm()
+		err:=r.ParseForm()
+		if err!=nil{
+			LogPanic.Panicln("parse form error postidhandle",err)
+		}
+
 		Author := r.Form.Get("Author")
 		Title := r.Form.Get("Title")
 		Content := r.Form.Get("Content")
@@ -463,7 +477,7 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 		Summary := getSummary(Content)
 		newpost := post.New(Author, Title, Content, CategoryList, Summary)
 		newpost.IDhex = idhex
-		err := newpost.Update()
+		err = newpost.Update()
 		// 如果更新过程出错，说明给的文章id出错，同样重定向到404
 		if err != nil {
 			LogPanic.Println("更新文章失败", err)
@@ -527,14 +541,20 @@ func NewCategoryHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		r.ParseForm()
+		err:=r.ParseForm()
+		if err!=nil{
+			LogPanic.Panicln("parse form error",err)
+		}
 		// 因为是只有登录了才能新建Category，所以多余的表单信息验证也不需要了。
 		LogDebug.Println(r.Form)
 		Name := r.Form.Get("Name")
 		EnglishName := r.Form.Get("EnglishName")
 		Description := r.Form.Get("Description")
 		NewCategory := category.New(Name, EnglishName, Description)
-		NewCategory.Add()
+		err=NewCategory.Add()
+		if err!=nil{
+			LogPanic.Panicln("add category failed",err)
+		}
 		showJumpMessage(MessagePage{Message: "添加分类成功", URL: "/category"}, w)
 	}
 }
@@ -624,19 +644,22 @@ func CategoryEditHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "POST" {
-		r.ParseForm()
+		err:=r.ParseForm()
+		panicErr("parse form error",err)
 		Name := r.Form.Get("Name")
 		EnglishName := r.Form.Get("EnglishName")
 		Description := r.Form.Get("Description")
 		categoryCotainer := category.New(Name, EnglishName, Description)
-		err := categoryCotainer.UpdateByIDhex(idhex)
+		err = categoryCotainer.UpdateByIDhex(idhex)
 		if err != nil {
 			showJumpMessage(MessagePage{Message: "访问目标，未知错误", URL: "/category"}, w)
 		}
 		showJumpMessage(MessagePage{Message: "更新分类信息成功", URL: "/category"}, w)
 	}
 }
-
+func panicErr(message string,err error){
+	LogPanic.Panicln(message,err)
+}
 // UploadHandle 处理图片的上传操作
 func UploadHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -697,7 +720,6 @@ func MyStripPrefixAndCheck(prefix string, h http.Handler) http.Handler {
 			http.NotFound(w, r)
 		}
 	})
-
 }
 
 // SearchHandle 处理搜索功能的路由

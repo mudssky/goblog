@@ -10,6 +10,8 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# 忽略图片文件夹
+static/assets/
 # node js ignore
 # Logs
 logs
