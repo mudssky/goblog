@@ -12,7 +12,7 @@ import (
 // User 用户表的一行信息 包括用户名 密码
 // 暂时先使用明文存储密码
 type User struct {
-	ID       bson.ObjectId `bson:"_id"`
+	ID       primitive.NewObjectID()`bson:"_id"`
 	Username string        `bson:"username"`
 	Password string        `bson:"password"`
 }

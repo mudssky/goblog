@@ -7,16 +7,16 @@
 package session
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"github.com/qiniu/qmgo"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Session Session的结构体
@@ -32,10 +32,19 @@ type Session struct {
 
 var (
 	// 数据库会话，数据库，以及集合
-	session    *mgo.Session
-	database   *mgo.Database
-	collection *mgo.Collection
+
+	ctx        context.Context
+	collection *qmgo.QmgoClient
 )
+
+func init() {
+	ctx = context.Background()
+	var err error
+	collection, err = qmgo.Open(ctx, &qmgo.Config{Uri: "mongodb://localhost:27017", Database: "goblog", Coll: "session"})
+	if err != nil {
+		log.Fatalln("connect error", err)
+	}
+}
 
 // GenSessionID 生成一个SessionID
 func (s *Session) GenSessionID() string {
@@ -97,7 +106,7 @@ func New() *Session {
 
 func (s *Session) insertNewSession(session *Session) {
 	c := GetCollection()
-	err := c.Insert(session)
+	_, err := c.InsertOne(ctx, session)
 	if err != nil {
 		log.Println("insert session error", err)
 	}
@@ -106,14 +115,14 @@ func (s *Session) insertNewSession(session *Session) {
 // GetAllData 从monggodb中获取所有session信息
 func (s *Session) GetAllData(SessionID string) (err error) {
 	c := GetCollection()
-	err = c.Find(bson.M{"sessionid": SessionID}).One(s)
+	err = c.Find(ctx, bson.M{"sessionid": SessionID}).One(s)
 	return
 }
 
 // GetAllData 从monggodb中获取所有session信息,返回errnotfound说明查找不到对应的session信息，可能没有创建也可能过期被删除了
 func GetAllData(SessionID string) (session Session, err error) {
 	c := GetCollection()
-	err = c.Find(bson.M{"sessionid": SessionID}).One(&session)
+	err = c.Find(ctx, bson.M{"sessionid": SessionID}).One(&session)
 	return
 }
 
@@ -138,37 +147,18 @@ func (s *Session) Get(key string) interface{} {
 // Save 设置完session的Data值后要保存到数据库里
 func (s *Session) Save() (err error) {
 	c := GetCollection()
-	err = c.Update(bson.M{"sessionid": s.SessionID}, bson.M{"$set": bson.M{"data": s.Data}})
+	err = c.UpdateOne(ctx, bson.M{"sessionid": s.SessionID}, bson.M{"$set": bson.M{"data": s.Data}})
 	return
 }
 
 // Destroy 从数据库中删除session
 func (s *Session) Destroy() {
 	c := GetCollection()
-	c.Remove(bson.M{"sessionid": s.SessionID})
-}
-func init() {
-	dialInfo := &mgo.DialInfo{
-		Addrs:     []string{"127.0.0.1:27017"},
-		Timeout:   time.Second * 1,
-		PoolLimit: 4096,
-	}
-	// 创建一个维护套接字池的session
-	session, err := mgo.DialWithInfo(dialInfo)
-	if err != nil {
-		log.Panicln("dial Database failed", err)
-	}
-	database = session.DB("goblog")
-	collection = database.C("session")
-}
-
-// GetDatabase 获取数据库对象
-func GetDatabase() *mgo.Database {
-	return database
+	c.Remove(ctx, bson.M{"sessionid": s.SessionID})
 }
 
 // GetCollection 获取集合对象
-func GetCollection() *mgo.Collection {
+func GetCollection() *qmgo.QmgoClient {
 	return collection
 }
 

@@ -16,7 +16,7 @@ import (
 	"goblog/models/session"
 	"goblog/models/user"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // 日志对象，分别用于输出不同级别的日志
@@ -49,15 +49,6 @@ func init() {
 	LogWarning = log.New(logFile, "[Warning]:", log.Ldate|log.Ltime|log.Llongfile)
 	LogPanic = log.New(errFile, "[Panic]:", log.Ldate|log.Ltime|log.Llongfile)
 	LogFatal = log.New(errFile, "[Fatal]:", log.Ldate|log.Ltime|log.Llongfile)
-	/*
-		// init函数里面用:=赋值 相当于给局部变量复制，所以我们要用=复制
-		var alltemperr error
-		AllTemplate, alltemperr = template.ParseFiles("views/index.html", "views/components/navbar.html", "views/components/footer.html","views/components/header.html", "views/signin.html", "views/signup.html")
-		if alltemperr != nil {
-			LogPanic.Panicln("parse template views/index.html failed")
-		}
-		LogDebug.Println("parse template succeed:", AllTemplate.DefinedTemplates())
-	*/
 
 }
 
@@ -66,11 +57,12 @@ func unescaped(x string) interface{} { return template.HTML(x) }
 // IndexHandle 处理首页的逻辑
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
-		pageNum := 1
+		var pageNum int64 = 1
 		urlValue := r.URL.Query()
 		pageStr := urlValue.Get("page")
 		if pageStr != "" {
-			pageNum, _ = strconv.Atoi(pageStr)
+			pageint, _ := strconv.Atoi(pageStr)
+			pageNum = int64(pageint)
 		}
 		posts := post.Post{}
 		pageNumCount := posts.PageNumCount()
@@ -101,7 +93,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 			nextNum = 0
 		}
 		sess.Data["postindex"] = postindex
-		sess.Data["pageNumList"] = []int{pageNum, pageNum + 1, pageNum + 2}
+		sess.Data["pageNumList"] = []int64{pageNum, pageNum + 1, pageNum + 2}
 		sess.Data["pageNumCount"] = pageNumCount
 		sess.Data["previousNum"] = previousNum
 		sess.Data["nextNum"] = nextNum
@@ -248,7 +240,7 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			message := MessagePage{Message: "注册成功", URL: "/signin"}
-			err := user.InsertUser(&user.User{Username: r.Form["Username"][0], Password: r.Form["Password"][0], Email: r.Form["Email"][0], ID: bson.NewObjectId()})
+			err := user.InsertUser(&user.User{Username: r.Form["Username"][0], Password: r.Form["Password"][0], Email: r.Form["Email"][0], ID: primitive.NewObjectID()})
 			if err != nil {
 				log.Panicln("insert user failed", err)
 			}

@@ -5,12 +5,13 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/globalsign/mgo/bson"
-
 	"goblog/models/user"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func Main() {
+
 	confbytes, err := ioutil.ReadFile("config.json")
 	if err != nil {
 		log.Fatalln("read config file error", err)
@@ -24,7 +25,7 @@ func Main() {
 	if user.Exist(newuser) {
 		log.Println("user already exist")
 	} else {
-		newuser.ID = bson.NewObjectId()
+		newuser.ID = primitive.NewObjectID()
 		err = user.InsertUser(newuser)
 		if err != nil {
 			log.Fatalln("user insert error", err)

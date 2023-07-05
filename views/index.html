@@ -1,78 +1,102 @@
-{{define "index"}}<!doctype html style="font-size:16px">
-{{template "header"}}
-   {{template "navbar" .}}
+{{define "index"}}<!DOCTYPE html style="font-size:16px">
+{{template "header"}} {{template "navbar" .}}
 
-   <div class="container mt-5">
-     {{range .postindex}}
-    <div class="card mt-5">
-      <a href="/postid?id={{.idhex}}" class="btn">
-          <div class="card-body">
-              <h2 class="card-title text-dark text-left" style="overflow-wrap:break-word ; white-space:normal;">{{.title}}</h2>
-              <p class="card-text text-dark border-top py-2" style="overflow-wrap:break-word ; white-space:normal;">{{.summary}}</p>
-            </div>
-          </a>
-      <div class="card-footer bg-white border-top">
-        <span class="p-2">
-            <span class="oi oi-clock">&nbsp;</span><span class="text-muted" id="lastmodified"> {{.lastmodified}}</span>
-        </span>
-        <span class="p-2">
-            <span class="oi oi-person"></span>&nbsp;<span class="card-text">{{.author}}</span>
-        </span>
-        <span class="p-2">
-            <span class="oi oi-eye"></span>&nbsp;<span class="card-text">{{.viewscounts}}views</span>
-        </span>
-        <!-- <span class="p-2"><span class="oi oi-chat"></span>&nbsp;<span class="card-text">{{.commentscounts}}comments</span></span> -->
-        <span class="card-text float-right"></span>
+<div class="container mt-5">
+  {{range .postindex}}
+  <div class="card mt-5">
+    <a href="/postid?id={{$.idhex}}" class="btn">
+      <div class="card-body">
+        <h2
+          class="card-title text-dark text-left"
+          style="overflow-wrap: break-word; white-space: normal"
+        >
+          {{.}}
+        </h2>
+        <p
+          class="card-text text-dark border-top py-2"
+          style="overflow-wrap: break-word; white-space: normal"
+        >
+          {{$.summary}}
+        </p>
       </div>
+    </a>
+    <div class="card-footer bg-white border-top">
+      <span class="p-2">
+        <span class="oi oi-clock">&nbsp;</span
+        ><span class="text-muted" id="lastmodified"> {{$.lastmodified}}</span>
+      </span>
+      <span class="p-2">
+        <span class="oi oi-person"></span>&nbsp;<span class="card-text"
+          >{{$.author}}</span
+        >
+      </span>
+      <span class="p-2">
+        <span class="oi oi-eye"></span>&nbsp;<span class="card-text"
+          >{{$.viewscounts}}views</span
+        >
+      </span>
+      <span class="card-text float-right"></span>
     </div>
-    {{end}}
-    <nav class="mt-2">
-      <ul class="pagination justify-content-center">
-          {{if ne .previousNum  0}}
-        <li class="page-item">
-          <a class="page-link" href="/?page={{.previousNum}}">Previous</a>
-        </li>
-        {{else}}
-        <li class="page-item disabled">
-            <a class="page-link" href="#" tabindex="-1">Previous</a>
-          </li>
-        {{end}}
-        {{$count:=.pageNumCount}}
-        {{range $i,$v:= .pageNumList}}
-        {{if le $v $count}}
-            {{if eq $i 0}}
-          <li class="page-item active"><a class="page-link" href="/?page={{$v}}">{{$v}}</a></li>
-          {{else}}
-          <li class="page-item"><a class="page-link" href="/?page={{$v}}">{{$v}}</a></li>
-          {{end}}
-        {{end}}
-       {{end}}
-        <li class="page-item disabled" style="line-height: 1em;vertical-align: middle"><a class="page-link" href="#">...</a></li>
-       
-          {{ if ne .nextNum  0}}
-          <li class="page-item">
-              <a class="page-link" href="/?page={{.nextNum}}">Next</a>
-            </li>
-          {{else}}
-          <li class="page-item disabled">
-              <a class="page-link" href="#">Next</a>
-            </li>
-          {{end}}
-      </ul>
-      <ul class="pagination justify-content-center" style="display:none" id="pageAlert">
-          <div class="alert alert-warning" role="alert">
-             请使用正确的页数
-            </div>
-        </ul>
-      <ul class="pagination justify-content-center">
-          <li class="page-item">
-            共 <span id="pageNumCount">{{.pageNumCount}}</span>页<input type="text" class="mx-2" id="jumpPage" style="width:40px"><button id="jumpBtn">跳转</button>
-            </li>
-        </ul>
-    </nav>
-   </div>
-   <script>
-     /*function ConvertUnixnanoStr(unixnanoStr){
+  </div>
+  {{end}}
+  <nav class="mt-2">
+    <ul class="pagination justify-content-center">
+      {{if ne .previousNum 0}}
+      <li class="page-item">
+        <a class="page-link" href="/?page={{.previousNum}}">Previous</a>
+      </li>
+      {{else}}
+      <li class="page-item disabled">
+        <a class="page-link" href="#" tabindex="-1">Previous</a>
+      </li>
+      {{end}} {{$count:=.pageNumCount}} {{range $i,$v:= .pageNumList}} {{if le
+      $v $count}} {{if eq $i 0}}
+      <li class="page-item active">
+        <a class="page-link" href="/?page={{$v}}">{{$v}}</a>
+      </li>
+      {{else}}
+      <li class="page-item">
+        <a class="page-link" href="/?page={{$v}}">{{$v}}</a>
+      </li>
+      {{end}} {{end}} {{end}}
+      <li
+        class="page-item disabled"
+        style="line-height: 1em; vertical-align: middle"
+      >
+        <a class="page-link" href="#">...</a>
+      </li>
+
+      {{ if ne .nextNum 0}}
+      <li class="page-item">
+        <a class="page-link" href="/?page={{.nextNum}}">Next</a>
+      </li>
+      {{else}}
+      <li class="page-item disabled">
+        <a class="page-link" href="#">Next</a>
+      </li>
+      {{end}}
+    </ul>
+    <ul
+      class="pagination justify-content-center"
+      style="display: none"
+      id="pageAlert"
+    >
+      <div class="alert alert-warning" role="alert">请使用正确的页数</div>
+    </ul>
+    <ul class="pagination justify-content-center">
+      <li class="page-item">
+        共 <span id="pageNumCount">{{.pageNumCount}}</span>页<input
+          type="text"
+          class="mx-2"
+          id="jumpPage"
+          style="width: 40px"
+        /><button id="jumpBtn">跳转</button>
+      </li>
+    </ul>
+  </nav>
+</div>
+<script>
+  /*function ConvertUnixnanoStr(unixnanoStr){
       //  获取unix秒数的INT值
         unixInt=parseInt(unixnanoStr.slice(0,-6))
         console.log(unixnanoStr)
@@ -80,51 +104,49 @@
         return new Date(unixInt)
      }*/
 
-     function ConvertMongoDateToGMT(dateStr){
-      //  截掉时区毫秒数等
-      //  utcDateStr= dateStr.slice(0,-14)
-      // console.log(dateStr)
-       utcDate=new Date(dateStr)
-       return utcDate
-     }
-
-     
- window.onload=function(){
-  let lastmodifiedList=document.querySelectorAll('#lastmodified')
-  for (var lastmodified of lastmodifiedList){
-      dateStr=  lastmodified.textContent
-      gmtDate=ConvertMongoDateToGMT(dateStr)
-      lastmodified.textContent=gmtDate.toLocaleDateString()+' '+gmtDate.toLocaleTimeString()
+  function ConvertMongoDateToGMT(dateStr) {
+    //  截掉时区毫秒数等
+    //  utcDateStr= dateStr.slice(0,-14)
+    // console.log(dateStr)
+    utcDate = new Date(dateStr)
+    return utcDate
   }
- 
-  jumpBtn=$('#jumpBtn')
-  jumpPage=$('#jumpPage')
-  jumpBtn.on('click',function(){
-    jumpPageNum= jumpPage.val()
-    maxPageNum=$('#pageNumCount').text()
-    if (parseInt(jumpPageNum)<= parseInt(maxPageNum)){
-       window.location.href='/?page='+jumpPageNum
-      //  console.log(window.location.href)
-    }else{
-      // console.log(1)
-        $('#pageAlert').fadeIn(3000).fadeOut()
-    }
-  })
-jumpPage.bind('keydown',function(event){
-  if (event.keyCode=="13"){
-    jumpPageNum= jumpPage.val()
-    maxPageNum=$('#pageNumCount').text()
-    if (parseInt(jumpPageNum)<= parseInt(maxPageNum)){
-       window.location.href='/?page='+jumpPageNum
-      //  console.log(window.location.href)
-    }else{
-      // console.log(1)
-        $('#pageAlert').fadeIn(3000).fadeOut()
-    }
-  }
-})
 
- }
+  window.onload = function () {
+    let lastmodifiedList = document.querySelectorAll('#lastmodified')
+    for (var lastmodified of lastmodifiedList) {
+      dateStr = lastmodified.textContent
+      gmtDate = ConvertMongoDateToGMT(dateStr)
+      lastmodified.textContent =
+        gmtDate.toLocaleDateString() + ' ' + gmtDate.toLocaleTimeString()
+    }
+
+    jumpBtn = $('#jumpBtn')
+    jumpPage = $('#jumpPage')
+    jumpBtn.on('click', function () {
+      jumpPageNum = jumpPage.val()
+      maxPageNum = $('#pageNumCount').text()
+      if (parseInt(jumpPageNum) <= parseInt(maxPageNum)) {
+        window.location.href = '/?page=' + jumpPageNum
+        //  console.log(window.location.href)
+      } else {
+        // console.log(1)
+        $('#pageAlert').fadeIn(3000).fadeOut()
+      }
+    })
+    jumpPage.bind('keydown', function (event) {
+      if (event.keyCode == '13') {
+        jumpPageNum = jumpPage.val()
+        maxPageNum = $('#pageNumCount').text()
+        if (parseInt(jumpPageNum) <= parseInt(maxPageNum)) {
+          window.location.href = '/?page=' + jumpPageNum
+          //  console.log(window.location.href)
+        } else {
+          // console.log(1)
+          $('#pageAlert').fadeIn(3000).fadeOut()
+        }
+      }
+    })
+  }
 </script>
-    {{template "footer"}}
-{{end}}
+{{template "footer"}} {{end}}

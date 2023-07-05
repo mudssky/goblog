@@ -19,7 +19,7 @@ import (
 	"goblog/models/session"
 	"goblog/models/user"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // 日志对象，分别用于输出不同级别的日志
@@ -72,13 +72,13 @@ func loadConfig() {
 	if user.Exist(newuser) {
 		log.Println("user already exist")
 	} else {
-		newuser.ID = bson.NewObjectId()
+		newuser.ID = primitive.NewObjectID()
 		err = user.InsertUser(newuser)
 		if err != nil {
 			log.Fatalln("user insert error", err)
 		}
 	}
-	log.Println("creat only user succeed")
+	log.Println("create only user succeed")
 }
 func init() {
 	// 创建输出日志文件
@@ -89,21 +89,10 @@ func init() {
 	LogPanic = log.New(errFile, "[Panic]:", log.Ldate|log.Ltime|log.Llongfile)
 	LogFatal = log.New(errFile, "[Fatal]:", log.Ldate|log.Ltime|log.Llongfile)
 	loadConfig()
-	/*
-		// init函数里面用:=赋值 相当于给局部变量复制，所以我们要用=赋值
-		var alltemperr error
-		AllTemplate, alltemperr = template.ParseFiles("views/index.html", "views/components/navbar.html", "views/components/footer.html","views/components/header.html", "views/signin.html", "views/signup.html")
-		if alltemperr != nil {
-			LogPanic.Panicln("parse template views/index.html failed")
-		}
-		LogDebug.Println("parse template succeed:", AllTemplate.DefinedTemplates())
-	*/
+
 	templates := loadTemplateDir("views")
 	LogDebug.Printf("load templates succeed ,total template count is %v \n%v\n", len(templates), templates)
 	var err error
-	// GlobalTemp, err = template.ParseFiles("views/index.html", "views/components/navbar.html", "views/components/footer.html",
-	// 	"views/components/header.html", "views/404.html", "views/category.html", "views/edit.html", "views/editcategory.html", "views/messagepage.html", "views/newcategory.html", "views/newpost.html",
-	// 	"views/post.html", "views/signin.html", "views/signup.html")
 	GlobalTemp, err = template.ParseFiles(templates...)
 	if err != nil {
 		LogFatal.Fatalln("parse all template failed", err)
@@ -117,11 +106,12 @@ func unescaped(x string) interface{} { return template.HTML(x) }
 // IndexHandle 处理首页的逻辑
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
-		pageNum := 1
+		var pageNum int64 = 1
 		urlValue := r.URL.Query()
 		pageStr := urlValue.Get("page")
 		if pageStr != "" {
-			pageNum, _ = strconv.Atoi(pageStr)
+			pageint, _ := strconv.Atoi(pageStr)
+			pageNum = int64(pageint)
 		}
 		posts := post.Post{}
 		pageNumCount := posts.PageNumCount()
@@ -129,7 +119,11 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 			pageNum = 1
 		}
 		postindex, err := posts.GetPostsIndexPaged(pageNum)
-		// LogDebug.Println(postindex)
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			return
+		}
+		LogDebug.Printf("postindex %v", postindex)
 		LogDebug.Println("path", "/")
 		// 获取session中的数据
 		sess := session.New()
@@ -145,7 +139,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 			nextNum = 0
 		}
 		sess.Data["postindex"] = postindex
-		sess.Data["pageNumList"] = []int{pageNum, pageNum + 1, pageNum + 2}
+		sess.Data["pageNumList"] = []int64{pageNum, pageNum + 1, pageNum + 2}
 		sess.Data["pageNumCount"] = pageNumCount
 		sess.Data["previousNum"] = previousNum
 		sess.Data["nextNum"] = nextNum
@@ -257,38 +251,6 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte("注册功能暂未开放"))
 	return
-	/*
-		if r.Method == "POST" {
-			// 解析表单数据
-			r.ParseForm()
-			// var errorMessage string
-			// 对表单数据进行验证
-			errorMessage := validateSignup(r.Form)
-			LogDebug.Println(errorMessage)
-			// 如果errorMessage=""，说明验证都能正常通过，我们还要验证用户名是否重复，查询mongodb中的用户表
-			if errorMessage == "" && user.CheckUserName(r.Form.Get("Username")) {
-				errorMessage = "输入的用户名已经存在"
-			}
-			if errorMessage != "" {
-				err := GlobalTemp.ExecuteTemplate(w, "signup.html", errorMessage)
-				if err != nil {
-					LogPanic.Panicln("parse template views/signup.html failed", err)
-				}
-			} else {
-				message := MessagePage{Message: "注册成功", URL: "/signin"}
-				err := user.InsertUser(&user.User{Username: r.Form.Get("Username"), Password: r.Form.Get("Password"), Email: r.Form.Get("Email"), ID: bson.NewObjectId()})
-				if err != nil {
-					log.Panicln("insert user failed", err)
-				}
-
-				err = GlobalTemp.ExecuteTemplate(w, "messagepage.html", message)
-				if err != nil {
-					LogPanic.Panicln("parse template views/messagepage.html failed", err)
-				}
-				// http.Redirect(w, r, "/signin", http.StatusFound)
-			}
-			// r.Form["Username"]
-		}*/
 }
 
 // SignoutHandle 退出登录的路由
@@ -302,19 +264,6 @@ func SignoutHandle(w http.ResponseWriter, r *http.Request) {
 	sess.Destroy()
 	http.Redirect(w, r, "/", http.StatusFound)
 }
-
-// PostHandle 文章页路由
-// func PostHandle(w http.ResponseWriter, r *http.Request) {
-// 	temp, err := template.ParseFiles("views/post.html", "views/components/navbar.html", "views/components/footer.html",
-// 		"views/components/header.html")
-// 	if err != nil {
-// 		LogPanic.Panicln("parse template views/index.html failed", err)
-// 	}
-// 	err = temp.ExecuteTemplate(w, "post.html", nil)
-// 	if err != nil {
-// 		LogPanic.Panicln("parse template views/index.html failed", err)
-// 	}
-// }
 
 func getSummary(content string) (summary string) {
 	runeContent := []rune(content)
@@ -416,10 +365,7 @@ func PostIDHandle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func checkSignin(sessionData map[string]interface{}) bool {
-	if sessionData["signin"] == true {
-		return true
-	}
-	return false
+	return sessionData["signin"] == true
 }
 
 // PostIDEditHandle 浏览文章的时候可以对指定文章进行编辑操作
@@ -434,7 +380,7 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 	sess := session.New()
 	sess = sess.SessionStart(w, r)
 	// 判断是否登录，若没有登录则没有权限，登录后sigin标志会变成true
-	if checkSignin(sess.Data) != true {
+	if !checkSignin(sess.Data) {
 		return
 	}
 	if r.Method == "GET" {
@@ -507,7 +453,7 @@ func PostIDDeleteHandle(w http.ResponseWriter, r *http.Request) {
 	sess := session.New()
 	sess = sess.SessionStart(w, r)
 	// 判断是否登录，若没有登录则没有权限，登录后sigin标志会变成true
-	if checkSignin(sess.Data) != true {
+	if !checkSignin(sess.Data) {
 		return
 	}
 	if r.Method == "GET" {
@@ -579,10 +525,7 @@ func CategoryHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func checkIDhexLen(idhex string) bool {
-	if len(strings.TrimSpace(idhex)) == 24 {
-		return true
-	}
-	return false
+	return len(strings.TrimSpace(idhex)) == 24
 }
 
 // CategoryDeleteHandle 执行删除的路由操作
@@ -761,7 +704,9 @@ func main() {
 
 	// 图片上传路由
 	http.HandleFunc("/upload", UploadHandle)
+	fmt.Printf("localhost:http://127.0.0.1:%v\n", 3333)
 	err := http.ListenAndServe(":3333", nil)
+
 	if err != nil {
 		LogFatal.Fatal("ListenAndServe error")
 	}
