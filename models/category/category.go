@@ -71,7 +71,7 @@ func (c *Category) AddPostsCountsByName(Name string) error {
 }
 
 // FindAllCategoryName  从数据库中获取所有类别的Name值
-func (c *Category) FindAllCategoryName() (res []interface{}, err error) {
+func (c *Category) FindAllCategoryName() (res []Category, err error) {
 	collection := GetCollection()
 	err = collection.Find(ctx, bson.M{}).Select(bson.M{"name": 1}).All(&res)
 	return

@@ -81,7 +81,7 @@ func (p *Post) FindPostByIDhex(objectidhex string) (err error) {
 	// objid := primitive.NewObjectID(objectidhex).Hex()
 	c := GetCollection()
 	err = c.Find(ctx, qmgo.M{
-		"id": objectidhex,
+		"idhex": objectidhex,
 	}).One(p)
 	return
 }
@@ -96,7 +96,7 @@ func (p *Post) AddViewsCounts(objectidhex string) (err error) {
 }
 
 // GetPostsIndex 获取首页需要用到的文章信息
-func (p *Post) GetPostsIndex() (res any, err error) {
+func (p *Post) GetPostsIndex() (res []Post, err error) {
 	c := GetCollection()
 	err = c.Find(ctx, qmgo.M{}).Select(bson.M{"idhex": 1, "title": 1, "lastmodified": 1, "author": 1, "viewscounts": 1, "summary": 1}).All(&res)
 	return

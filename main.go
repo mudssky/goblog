@@ -120,6 +120,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		postindex, err := posts.GetPostsIndexPaged(pageNum)
 		if err != nil {
+			LogWarning.Println(err)
 			w.Write([]byte(err.Error()))
 			return
 		}
