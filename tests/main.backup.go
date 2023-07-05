@@ -11,10 +11,11 @@ import (
 	"strconv"
 	"strings"
 
-	"./models/category"
-	"./models/post"
-	"./models/session"
-	"./models/user"
+	"goblog/models/category"
+	"goblog/models/post"
+	"goblog/models/session"
+	"goblog/models/user"
+
 	"github.com/globalsign/mgo/bson"
 )
 

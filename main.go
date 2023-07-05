@@ -187,9 +187,9 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	err:=r.ParseForm()
-	if err!=nil{
-		LogPanic.Panicln("parse form error siginhandle",err)
+	err := r.ParseForm()
+	if err != nil {
+		LogPanic.Panicln("parse form error siginhandle", err)
 	}
 	// POST请求，处理登录逻辑
 	if r.Method == "POST" {
@@ -212,9 +212,9 @@ func SigninHandle(w http.ResponseWriter, r *http.Request) {
 			// 登陆成功，自动跳转到首页,设置session记录登录状态
 			sess.Set("signin", true)
 			sess.Set("username", username)
-			err=sess.Save()
-			if err!=nil{
-				LogPanic.Panicln("save session failed signin",err)
+			err = sess.Save()
+			if err != nil {
+				LogPanic.Panicln("save session failed signin", err)
 			}
 			succeedMessage := fmt.Sprintf("登录成功,%s", username)
 			message := MessagePage{Message: succeedMessage, URL: "/"}
@@ -258,37 +258,37 @@ func SignupHandle(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("注册功能暂未开放"))
 	return
 	/*
-	if r.Method == "POST" {
-		// 解析表单数据
-		r.ParseForm()
-		// var errorMessage string
-		// 对表单数据进行验证
-		errorMessage := validateSignup(r.Form)
-		LogDebug.Println(errorMessage)
-		// 如果errorMessage=""，说明验证都能正常通过，我们还要验证用户名是否重复，查询mongodb中的用户表
-		if errorMessage == "" && user.CheckUserName(r.Form.Get("Username")) {
-			errorMessage = "输入的用户名已经存在"
-		}
-		if errorMessage != "" {
-			err := GlobalTemp.ExecuteTemplate(w, "signup.html", errorMessage)
-			if err != nil {
-				LogPanic.Panicln("parse template views/signup.html failed", err)
+		if r.Method == "POST" {
+			// 解析表单数据
+			r.ParseForm()
+			// var errorMessage string
+			// 对表单数据进行验证
+			errorMessage := validateSignup(r.Form)
+			LogDebug.Println(errorMessage)
+			// 如果errorMessage=""，说明验证都能正常通过，我们还要验证用户名是否重复，查询mongodb中的用户表
+			if errorMessage == "" && user.CheckUserName(r.Form.Get("Username")) {
+				errorMessage = "输入的用户名已经存在"
 			}
-		} else {
-			message := MessagePage{Message: "注册成功", URL: "/signin"}
-			err := user.InsertUser(&user.User{Username: r.Form.Get("Username"), Password: r.Form.Get("Password"), Email: r.Form.Get("Email"), ID: bson.NewObjectId()})
-			if err != nil {
-				log.Panicln("insert user failed", err)
-			}
+			if errorMessage != "" {
+				err := GlobalTemp.ExecuteTemplate(w, "signup.html", errorMessage)
+				if err != nil {
+					LogPanic.Panicln("parse template views/signup.html failed", err)
+				}
+			} else {
+				message := MessagePage{Message: "注册成功", URL: "/signin"}
+				err := user.InsertUser(&user.User{Username: r.Form.Get("Username"), Password: r.Form.Get("Password"), Email: r.Form.Get("Email"), ID: bson.NewObjectId()})
+				if err != nil {
+					log.Panicln("insert user failed", err)
+				}
 
-			err = GlobalTemp.ExecuteTemplate(w, "messagepage.html", message)
-			if err != nil {
-				LogPanic.Panicln("parse template views/messagepage.html failed", err)
+				err = GlobalTemp.ExecuteTemplate(w, "messagepage.html", message)
+				if err != nil {
+					LogPanic.Panicln("parse template views/messagepage.html failed", err)
+				}
+				// http.Redirect(w, r, "/signin", http.StatusFound)
 			}
-			// http.Redirect(w, r, "/signin", http.StatusFound)
-		}
-		// r.Form["Username"]
-	}*/
+			// r.Form["Username"]
+		}*/
 }
 
 // SignoutHandle 退出登录的路由
@@ -348,9 +348,9 @@ func NewPostHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "POST" {
-		err:=r.ParseForm()
-		if err!=nil{
-			LogPanic.Panicln("parse Form error",err)
+		err := r.ParseForm()
+		if err != nil {
+			LogPanic.Panicln("parse Form error", err)
 		}
 		Author := r.Form.Get("Author")
 		Title := r.Form.Get("Title")
@@ -462,9 +462,9 @@ func PostIDEditHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "POST" {
-		err:=r.ParseForm()
-		if err!=nil{
-			LogPanic.Panicln("parse form error postidhandle",err)
+		err := r.ParseForm()
+		if err != nil {
+			LogPanic.Panicln("parse form error postidhandle", err)
 		}
 
 		Author := r.Form.Get("Author")
@@ -541,9 +541,9 @@ func NewCategoryHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		err:=r.ParseForm()
-		if err!=nil{
-			LogPanic.Panicln("parse form error",err)
+		err := r.ParseForm()
+		if err != nil {
+			LogPanic.Panicln("parse form error", err)
 		}
 		// 因为是只有登录了才能新建Category，所以多余的表单信息验证也不需要了。
 		LogDebug.Println(r.Form)
@@ -551,9 +551,9 @@ func NewCategoryHandle(w http.ResponseWriter, r *http.Request) {
 		EnglishName := r.Form.Get("EnglishName")
 		Description := r.Form.Get("Description")
 		NewCategory := category.New(Name, EnglishName, Description)
-		err=NewCategory.Add()
-		if err!=nil{
-			LogPanic.Panicln("add category failed",err)
+		err = NewCategory.Add()
+		if err != nil {
+			LogPanic.Panicln("add category failed", err)
 		}
 		showJumpMessage(MessagePage{Message: "添加分类成功", URL: "/category"}, w)
 	}
@@ -644,8 +644,8 @@ func CategoryEditHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "POST" {
-		err:=r.ParseForm()
-		panicErr("parse form error",err)
+		err := r.ParseForm()
+		panicErr("parse form error", err)
 		Name := r.Form.Get("Name")
 		EnglishName := r.Form.Get("EnglishName")
 		Description := r.Form.Get("Description")
@@ -657,9 +657,10 @@ func CategoryEditHandle(w http.ResponseWriter, r *http.Request) {
 		showJumpMessage(MessagePage{Message: "更新分类信息成功", URL: "/category"}, w)
 	}
 }
-func panicErr(message string,err error){
-	LogPanic.Panicln(message,err)
+func panicErr(message string, err error) {
+	LogPanic.Panicln(message, err)
 }
+
 // UploadHandle 处理图片的上传操作
 func UploadHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -696,16 +697,16 @@ func MyStripPrefixAndCheck(prefix string, h http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//log.Println("enter",r.URL.Path)
-		f,err:= os.Stat("."+r.URL.Path)
+		f, err := os.Stat("." + r.URL.Path)
 		//判断目录或者文件是否存在，如果存在，不存在，返回404。再判断是否是目录,是目录直接返回404
-		if err!=nil{
+		if err != nil {
 			log.Println(r.URL.Path)
-			http.NotFound(w,r)
+			http.NotFound(w, r)
 			return
 		}
-		if f.IsDir(){
+		if f.IsDir() {
 			log.Println(r.URL.Path)
-			http.NotFound(w,r)
+			http.NotFound(w, r)
 			return
 		}
 		if p := strings.TrimPrefix(r.URL.Path, prefix); len(p) < len(r.URL.Path) {
@@ -727,6 +728,11 @@ func SearchHandle(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("搜索功能暂未实装"))
 
 }
+
+//go:generate go env -w GO111MODULE=on
+//go:generate go env -w GOPROXY=https://goproxy.cn,direct
+//go:generate go mod tidy
+//go:generate go mod download
 func main() {
 	// 开启静态文件服务，http.StripPrefix提供去掉前缀的静态路由，否则会把路由全部当做路径匹配
 	http.Handle("/static/", MyStripPrefixAndCheck("/static/", http.FileServer(http.Dir("./static"))))

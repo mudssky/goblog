@@ -7,10 +7,10 @@ import (
 
 	"github.com/globalsign/mgo/bson"
 
-	"../models/user"
+	"goblog/models/user"
 )
 
-func main() {
+func Main() {
 	confbytes, err := ioutil.ReadFile("config.json")
 	if err != nil {
 		log.Fatalln("read config file error", err)
