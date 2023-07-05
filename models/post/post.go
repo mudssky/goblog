@@ -148,7 +148,7 @@ func (p *Post) GetPostsIndexPaged(pageNum int64) (res []Post, err error) {
 func (p *Post) Update() error {
 
 	c := GetCollection()
-	err := c.UpdateOne(ctx, bson.M{"_id": p.ID}, bson.M{"$set": bson.M{"lastmodified": p.LastModified, "author": p.Author, "categorylist": p.CategoryList, "content": p.Content, "title": p.Title, "summary": p.Summary}})
+	err := c.UpdateOne(ctx, bson.M{"idhex": p.IDhex}, bson.M{"$set": bson.M{"lastmodified": p.LastModified, "author": p.Author, "categorylist": p.CategoryList, "content": p.Content, "title": p.Title, "summary": p.Summary}})
 	return err
 }
 

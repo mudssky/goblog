@@ -1,87 +1,86 @@
-{{template "header"}}
-{{template "navbar" .}}
+{{template "header"}} {{template "navbar" .}}
 <div class="container mt-5">
   <form action="/postid/edit?id={{.post.IDhex}}" method="POST">
-      <div class="form-group row">
-          <label for="inputAuthor" class="col-sm-2 col-form-label">Author</label>
-          <div class="col-sm-10">
-            <input type="text" readonly class="form-control-plaintext" name="Author" id="inputAuthor" value="{{.post.Author}}">
-          </div>
-        </div>
-        <div class="form-group row">
-          <label for="inputTitle" class="col-sm-2 col-form-label">Title</label>
-          <div class="col-sm-10">
-            <input type="text" class="form-control" id="inputTitle" name="Title" placeholder="Title" value="{{.post.Title}}">
-          </div>
-        </div>
-        <div class="row">
-            <label for="CategoryNames" class="col-sm-2 col-form-label">CategoryNames</label>
-            <div class="col-sm-10" id="badges"> 
-                {{range $i,$v:= .CategoryNames}}
-                <span class="badge badge-pill badge-info">{{$v.name}}</span>
-                {{end}}
-            </div>
-        </div>
-        <div class="form-group row">
-            <label for="inputCategory" class="col-sm-2 col-form-label">Category</label>
-            <div class="col-sm-10">
-              <input type="text" class="form-control" id="inputCategory" name="Category" placeholder="Category" value="">
-            </div>
-          </div>
-          <div id="textBox" class="">
-      <textarea name="Content" id="textarea"  rows="30" class="form-control" value="">{{.post.Content}}</textarea>
-          </div>
-      <button  type="submit" class="btn btn-primary form-control" id="" >Update</button>
+    <div class="form-group row">
+      <label for="inputAuthor" class="col-sm-2 col-form-label">Author</label>
+      <div class="col-sm-10">
+        <input type="text" readonly class="form-control-plaintext" name="Author" id="inputAuthor" value="{{.post.Author}}" />
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="inputTitle" class="col-sm-2 col-form-label">Title</label>
+      <div class="col-sm-10">
+        <input type="text" class="form-control" id="inputTitle" name="Title" placeholder="Title" value="{{.post.Title}}" />
+      </div>
+    </div>
+    <div class="row">
+      <label for="CategoryNames" class="col-sm-2 col-form-label">CategoryNames</label>
+      <div class="col-sm-10" id="badges">
+        {{range $i,$v:= .CategoryNames}}
+        <span class="badge badge-pill badge-info">{{$v.Name}}</span>
+        {{end}}
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="inputCategory" class="col-sm-2 col-form-label">Category</label>
+      <div class="col-sm-10">
+        <input type="text" class="form-control" id="inputCategory" name="Category" placeholder="Category" value="" />
+      </div>
+    </div>
+    <div id="textBox" class="">
+      <textarea name="Content" id="textarea" rows="30" class="form-control" value="">{{.post.Content}}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary form-control" id="">Update</button>
   </form>
   <button class="btn btn-primary form-control" id="openEdit">Edit with StackEdit</button>
 </div>
 <script src="/static/js/benweet-stackedit.js-5f37fa9/docs/lib/stackedit.min.js"></script>
 <script>
- const el = document.querySelector('#textarea');
- const btn=document.querySelector("#openEdit")
-  const stackedit = new Stackedit();
+  const el = document.querySelector('#textarea')
+  const btn = document.querySelector('#openEdit')
+  const stackedit = new Stackedit()
 
-//   Open the iframe
-//   stackedit.openFile({
-//     name: 'Filename', // with an optional filename
-//     content: {
-//       text: `{{.post.Content}}` // and the Markdown content.
-//     }
-//   },true);
+  //   Open the iframe
+  //   stackedit.openFile({
+  //     name: 'Filename', // with an optional filename
+  //     content: {
+  //       text: `{{.post.Content}}` // and the Markdown content.
+  //     }
+  //   },true);
 
   // Listen to StackEdit events and apply the changes to the textarea.
   stackedit.on('fileChange', (file) => {
-    el.value = file.content.text;
-  });
-  btn.addEventListener("click",function(){
-    stackedit.openFile({
-    name: 'textOnEdit', // with an optional filename
-    content: {
-      text: el.value // and the Markdown content.
-    }
-  });
+    el.value = file.content.text
   })
-  window.onload=function(){
-    inputCategory=$('#inputCategory')
-    reslist=[]
-     $('#badges').on('click','span',function(){
-       categoryname= $(this).text()
-       $(this).fadeOut()
-       reslist.push(categoryname)
+  btn.addEventListener('click', function () {
+    stackedit.openFile({
+      name: 'textOnEdit', // with an optional filename
+      content: {
+        text: el.value, // and the Markdown content.
+      },
+    })
+  })
+  window.onload = function () {
+    inputCategory = $('#inputCategory')
+    reslist = []
+    $('#badges').on('click', 'span', function () {
+      categoryname = $(this).text()
+      $(this).fadeOut()
+      reslist.push(categoryname)
       $(inputCategory).val(reslist.join('&'))
-     })
+    })
 
-     // (1)需要解决一旦拖拽外部文件就覆盖掉当前页面的问题
-    //  解决：给document绑定drop事件 
+    // (1)需要解决一旦拖拽外部文件就覆盖掉当前页面的问题
+    //  解决：给document绑定drop事件
     //  drop事件默认触发不了，需要在dragover事件里面阻止默认事件
-   // 这个阻止默认事件是为了让drop事件得以触发
-   document.ondragover = function(e){
+    // 这个阻止默认事件是为了让drop事件得以触发
+    document.ondragover = function (e) {
       // console.log(1)
-        e.preventDefault();
+      e.preventDefault()
     }
-   document.ondrop = function(e){
+    document.ondrop = function (e) {
       // console.log(2)
-        e.preventDefault();
+      e.preventDefault()
     }
     // document.ondragenter = function(e){
     //    console.log('denter')
@@ -90,32 +89,32 @@
 
     // 实现直接拖拽文本文件 读取文本文件进入textarea、
 
-    textBox=document.getElementById('textBox')
-      textareaDom=document.getElementById('textarea')
-   
-      textBox.ondragenter=function(){
-        console.log('enter')
-        textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,.8)';
+    textBox = document.getElementById('textBox')
+    textareaDom = document.getElementById('textarea')
+
+    textBox.ondragenter = function () {
+      console.log('enter')
+      textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,.8)'
+    }
+    textBox.ondrop = function (e) {
+      // 得到拖拽过来的文件对象
+      console.log('drop')
+      var fileObj = e.dataTransfer.files[0]
+      // console.log(fileObj)
+      var fr = new FileReader()
+
+      fr.onload = function () {
+        textareaDom.value = this.result
+        textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,0)'
       }
-      textBox.ondrop=function(e){
-        // 得到拖拽过来的文件对象
-        console.log('drop')
-        var fileObj=e.dataTransfer.files[0]
-        // console.log(fileObj)
-        var fr = new FileReader()
-        
-        fr.onload=function(){
-          textareaDom.value=this.result
-          textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,0)';
-        }
-        fr.readAsText(fileObj)
-        fr.onerror=function(e){
-          console.log('drap error',e)
-        }
+      fr.readAsText(fileObj)
+      fr.onerror = function (e) {
+        console.log('drap error', e)
       }
-      // textBox.ondragover=function(e){
-      //   textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,.8)';
-      // }
+    }
+    // textBox.ondragover=function(e){
+    //   textBox.style.boxShadow = '0 0 10px 5px rgba(255,0,0,.8)';
+    // }
   }
 </script>
 {{template "footer"}}
